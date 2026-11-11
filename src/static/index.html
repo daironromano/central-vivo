@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vivo — Centralizador Diário de Relatórios</title>
+  <style>
+    :root {
+      --vivo-purple: #660099;
+      --vivo-purple-dark: #4a0070;
+      --vivo-purple-light: #f5ebf9;
+      --bg-page: #f4f5f8;
+      --bg-card: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* SILHOUETTE ICON STANDARD - VIVO PURPLE (#660099) */
+    .icon-vivo {
+      width: 16px;
+      height: 16px;
+      fill: #660099;
+      flex-shrink: 0;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    /* TOPBAR */
+    .topbar {
+      background: linear-gradient(135deg, var(--vivo-purple) 0%, var(--vivo-purple-dark) 100%);
+      color: #fff;
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #ffffff;
+      color: var(--vivo-purple);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: 0.5px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .brand p {
+      font-size: 12px;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .env-badge {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #ffffff;
+      color: var(--vivo-purple);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--vivo-purple-light);
+      color: var(--vivo-purple);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #ffffff;
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: var(--vivo-purple);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--vivo-purple-light);
+      transform: translateY(-1px);
+    }
+
+    .btn-vivo {
+      background: var(--vivo-purple-light);
+      color: var(--vivo-purple);
+      border: 1px solid var(--vivo-purple);
+    }
+
+    .btn-vivo:hover:not(:disabled) {
+      background: #e9d5ff;
+    }
+
+    .btn-outline {
+      background: #fff;
+      color: var(--vivo-purple);
+      border: 1px solid var(--vivo-purple);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      background: var(--vivo-purple-light);
+    }
+
+    /* NAVIGATION TABS */
+    .tabs-bar {
+      background: #fff;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 14px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .tab-btn:hover {
+      color: var(--vivo-purple);
+    }
+
+    .tab-btn.active {
+      color: var(--vivo-purple);
+      border-bottom-color: var(--vivo-purple);
+      background: linear-gradient(to top, var(--vivo-purple-light), transparent 40%);
+    }
+
+    .tab-counter {
+      background: #f3f4f6;
+      color: var(--text-main);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tab-btn.active .tab-counter {
+      background: var(--vivo-purple);
+      color: #fff;
+    }
+
+    /* MAIN CONTENT */
+    .container {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 28px;
+      flex: 1;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* CARDS & GRIDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      border-left: 5px solid var(--vivo-purple);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .kpi-card h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--vivo-purple);
+    }
+
+    .kpi-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 980px) {
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* FILTER BAR */
+    .filter-bar {
+      background: #fbf9fc;
+      border: 1px solid #e9d5ff;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+
+    .filter-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--vivo-purple);
+    }
+
+    .filter-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 12px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .filter-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text-main);
+    }
+
+    .filter-group select:focus,
+    .filter-group input:focus {
+      outline: 2px solid var(--vivo-purple);
+      border-color: transparent;
+    }
+
+    /* TABLES */
+    .table-wrapper {
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      background: #2d1147;
+      color: #fff;
+      text-align: left;
+      padding: 11px 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+
+    tbody tr:hover {
+      background: var(--vivo-purple-light);
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-crit {
+      background: #f3e8ff;
+      color: #4a0070;
+      border: 1px solid #660099;
+    }
+
+    .badge-ok {
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+
+    .badge-warn {
+      background: #f5ebf9;
+      color: #660099;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1f2937;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BARRA SUPERIOR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg class="icon-vivo" style="width:22px;height:22px;" viewBox="0 0 24 24">
+          <path d="M12 2L2 7l10 5 10-5-10-5zm0 7.5l-6-3 6-3 6 3-6 3zm0 2.5l-10-5v2l10 5 10-5v-2l-10 5zm0 5l-10-5v2l10 5 10-5v-2l-10 5z"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Centralizador Diário de Relatórios — Vivo</h1>
+        <p>P1 (DOMUS) • Anel Comutado (BI) • Backlog Diário (Maestro)</p>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <span id="envBadge" class="env-badge">MODO: CARREGANDO...</span>
+      <button class="btn btn-secondary" onclick="extrairTodos()" id="btnExtractAll">
+        <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+        <span>Atualizar Todas as Fontes</span>
+      </button>
+      <button class="btn btn-primary" onclick="baixarExcelUnificado()" id="btnDownloadExcel">
+        <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        <span>Baixar Excel Unificado (.xlsx)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- NAVEGAÇÃO DE ABAS -->
+  <nav class="tabs-bar">
+    <button class="tab-btn active" onclick="trocarAba('resumo')" id="tabbtn-resumo">
+      <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Resumo Geral (Consolidado)</span>
+    </button>
+    <button class="tab-btn" onclick="trocarAba('p1_domus')" id="tabbtn-p1_domus">
+      <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+      <span>P1 (DOMUS)</span>
+      <span class="tab-counter" id="count-p1_domus">0</span>
+    </button>
+    <button class="tab-btn" onclick="trocarAba('anel_comutado')" id="tabbtn-anel_comutado">
+      <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+      <span>Anel Comutado (BI)</span>
+      <span class="tab-counter" id="count-anel_comutado">0</span>
+    </button>
+    <button class="tab-btn" onclick="trocarAba('backlog_maestro')" id="tabbtn-backlog_maestro">
+      <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+      <span>Backlog Diário (Maestro)</span>
+      <span class="tab-counter" id="count-backlog_maestro">0</span>
+    </button>
+  </nav>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="container">
+    <!-- ABA 1: RESUMO GERAL -->
+    <section id="panel-resumo" class="tab-panel active">
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="summary-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              <span>Consolidado por Regional (Dados Filtrados nas Abas)</span>
+            </span>
+          </div>
+          <div class="table-wrapper" id="tabelaRegionalResumo"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M16 11V5h2V3H6v2h2v6l-2 2v2h5v6l1 1 1-1v-6h5v-2l-2-2z"/></svg>
+              <span>Quebra por Status / Situação</span>
+            </span>
+          </div>
+          <div id="statusBreakdownResumo"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABAS INDIVIDUAIS DOS 3 RELATÓRIOS -->
+    <section id="panel-p1_domus" class="tab-panel"></section>
+    <section id="panel-anel_comutado" class="tab-panel"></section>
+    <section id="panel-backlog_maestro" class="tab-panel"></section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // Catálogo de Ícones em Silhueta Monocromática Roxo Vivo (#660099)
+    const ICONS = {
+      sync: `<svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>`,
+      download: `<svg class="icon-vivo" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`,
+      folder: `<svg class="icon-vivo" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
+      search: `<svg class="icon-vivo" style="width:13px;height:13px;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>`,
+      sliders: `<svg class="icon-vivo" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>`,
+      alert: `<svg class="icon-vivo" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`,
+      lab: `<svg class="icon-vivo" viewBox="0 0 24 24"><path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z"/></svg>`,
+      building: `<svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>`
+    };
+
+    let ESTADO_ATUAL = { modo_ambiente: "MOCK", relatorios: {} };
+    let FILTROS_POR_ABA = {
+      p1_domus: {},
+      anel_comutado: {},
+      backlog_maestro: {}
+    };
+    let BUSCA_POR_ABA = {
+      p1_domus: "",
+      anel_comutado: "",
+      backlog_maestro: ""
+    };
+
+    function mostrarNotificacao(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      setTimeout(() => { t.style.display = "none"; }, 3500);
+    }
+
+    function trocarAba(abaId) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+
+      document.getElementById(`tabbtn-${abaId}`).classList.add("active");
+      document.getElementById(`panel-${abaId}`).classList.add("active");
+
+      if (abaId === "resumo") {
+        renderizarResumoGeral();
+      }
+    }
+
+    function obterRegistrosFiltrados(repId) {
+      const rep = ESTADO_ATUAL.relatorios[repId];
+      if (!rep || !rep.registros) return [];
+      const filtros = FILTROS_POR_ABA[repId] || {};
+      const termo = (BUSCA_POR_ABA[repId] || "").trim().toLowerCase();
+
+      return rep.registros.filter(row => {
+        for (const [col, val] of Object.entries(filtros)) {
+          if (val && val !== "TODOS" && String(row[col]) !== String(val)) {
+            return false;
+          }
+        }
+        if (termo) {
+          const bate = Object.values(row).some(v => String(v).toLowerCase().includes(termo));
+          if (!bate) return false;
+        }
+        return true;
+      });
+    }
+
+    function atualizarFiltro(repId, coluna, valor) {
+      if (!FILTROS_POR_ABA[repId]) FILTROS_POR_ABA[repId] = {};
+      FILTROS_POR_ABA[repId][coluna] = valor;
+      atualizarTabelaAba(repId);
+      renderizarResumoGeral();
+    }
+
+    function atualizarBusca(repId, valor) {
+      BUSCA_POR_ABA[repId] = valor;
+      atualizarTabelaAba(repId);
+      renderizarResumoGeral();
+    }
+
+    function limparFiltrosAba(repId) {
+      FILTROS_POR_ABA[repId] = {};
+      BUSCA_POR_ABA[repId] = "";
+      renderizarPainelRelatorio(repId);
+      renderizarResumoGeral();
+      mostrarNotificacao("Filtros limpos!");
+    }
+
+    function renderizarPainelRelatorio(repId) {
+      const rep = ESTADO_ATUAL.relatorios[repId];
+      const container = document.getElementById(`panel-${repId}`);
+      if (!rep || !container) return;
+
+      const filtrosDisp = rep.filtros_disponiveis || {};
+      const selecoesAtuais = FILTROS_POR_ABA[repId] || {};
+      const buscaAtual = BUSCA_POR_ABA[repId] || "";
+
+      let controlesFiltroHtml = `
+        <div class="filter-group">
+          <label>${ICONS.search} <span>Busca Livre</span></label>
+          <input type="text" placeholder="Pesquisar em qualquer coluna..." value="${buscaAtual}"
+                 oninput="atualizarBusca('${repId}', this.value)" />
+        </div>
+      `;
+
+      for (const [col, valores] of Object.entries(filtrosDisp)) {
+        const valorSelecionado = selecoesAtuais[col] || "TODOS";
+        const optionsHtml = [`<option value="TODOS">Todos (${valores.length})</option>`]
+          .concat(valores.map(v => `<option value="${v}" ${v === valorSelecionado ? "selected" : ""}>${v}</option>`))
+          .join("");
+
+        controlesFiltroHtml += `
+          <div class="filter-group">
+            <label>${col}</label>
+            <select onchange="atualizarFiltro('${repId}', '${col}', this.value)">
+              ${optionsHtml}
+            </select>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">${rep.nome} — <span style="color:var(--vivo-purple)">${rep.origem}</span></div>
+              <small style="color:var(--text-muted)">Última leitura: ${rep.atualizado_em}</small>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <label class="btn btn-outline" style="cursor:pointer;">
+                ${ICONS.folder}
+                <span>Carregar Planilha (.xlsx/.csv)</span>
+                <input type="file" accept=".xlsx,.xls,.csv,.json" style="display:none"
+                       onchange="fazerUploadManual('${repId}', this.files[0])" />
+              </label>
+              <button class="btn btn-vivo" onclick="extrairUnico('${repId}')">
+                ${ICONS.sync}
+                <span>Sincronizar ${rep.nome}</span>
+              </button>
+            </div>
+          </div>
+
+          ${rep.erro ? `<div style="background:#f5ebf9;color:#4a0070;border:1px solid #660099;padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px;display:flex;align-items:center;gap:8px;">${ICONS.alert} <span>${rep.erro}</span></div>` : ""}
+
+          <div class="filter-bar">
+            <div class="filter-bar-header">
+              <span style="display:flex;align-items:center;gap:8px;">
+                ${ICONS.sliders}
+                <span>FILTROS ESPECÍFICOS DO RELATÓRIO (${rep.nome}) — Refletem na aba do Excel e no Resumo!</span>
+              </span>
+              <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="limparFiltrosAba('${repId}')">
+                Limpar Filtros
+              </button>
+            </div>
+            <div class="filter-controls">
+              ${controlesFiltroHtml}
+            </div>
+          </div>
+
+          <div id="table-container-${repId}" class="table-wrapper"></div>
+        </div>
+      `;
+
+      atualizarTabelaAba(repId);
+    }
+
+    function formatarCelula(col, val) {
+      const s = String(val ?? "");
+      const lower = s.toLowerCase();
+      if (lower.includes("crític") || lower.includes("alarme") || lower.includes("emergencial")) {
+        return `<span class="badge badge-crit">${s}</span>`;
+      }
+      if (lower.includes("normal") || lower.includes("dentro do prazo") || lower.includes("encerrado")) {
+        return `<span class="badge badge-ok">${s}</span>`;
+      }
+      if (lower.includes("pendente") || lower.includes("degradado") || lower.includes("aguardando")) {
+        return `<span class="badge badge-warn">${s}</span>`;
+      }
+      return s;
+    }
+
+    function atualizarTabelaAba(repId) {
+      const rep = ESTADO_ATUAL.relatorios[repId];
+      if (!rep) return;
+
+      const filtrados = obterRegistrosFiltrados(repId);
+      const countEl = document.getElementById(`count-${repId}`);
+      if (countEl) countEl.textContent = `${filtrados.length}/${rep.registros.length}`;
+
+      const tableContainer = document.getElementById(`table-container-${repId}`);
+      if (!tableContainer) return;
+
+      if (filtrados.length === 0) {
+        tableContainer.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-muted);">Nenhum registro encontrado com os filtros atuais.</div>`;
+        return;
+      }
+
+      const cols = rep.colunas;
+      const thead = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead>`;
+      const tbody = `<tbody>${filtrados.map(row => `
+        <tr>${cols.map(c => `<td>${formatarCelula(c, row[c])}</td>`).join("")}</tr>
+      `).join("")}</tbody>`;
+
+      tableContainer.innerHTML = `<table>${thead}${tbody}</table>`;
+    }
+
+    function renderizarResumoGeral() {
+      const reps = ESTADO_ATUAL.relatorios;
+      const ids = Object.keys(reps);
+      if (ids.length === 0) return;
+
+      let totalBrutoGeral = 0;
+      let totalFiltradoGeral = 0;
+      let kpiHtml = "";
+
+      ids.forEach(repId => {
+        const r = reps[repId];
+        const filtrados = obterRegistrosFiltrados(repId);
+        totalBrutoGeral += r.registros.length;
+        totalFiltradoGeral += filtrados.length;
+
+        const filtrosAtivos = Object.entries(FILTROS_POR_ABA[repId] || {})
+          .filter(([_, v]) => v && v !== "TODOS")
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(" | ");
+
+        kpiHtml += `
+          <div class="kpi-card">
+            <h3>${r.nome}</h3>
+            <div class="kpi-value">${filtrados.length} <span style="font-size:14px;font-weight:500;color:var(--text-muted)">/ ${r.registros.length} brutos</span></div>
+            <div class="kpi-meta">
+              <span>${filtrosAtivos || "Sem filtro aplicado"}</span>
+              <a href="javascript:void(0)" onclick="trocarAba('${repId}')" style="color:var(--vivo-purple);font-weight:600;text-decoration:none;">Abrir Aba →</a>
+            </div>
+          </div>
+        `;
+      });
+
+      kpiHtml = `
+        <div class="kpi-card">
+          <h3>Total Consolidado (3 Sistemas)</h3>
+          <div class="kpi-value">${totalFiltradoGeral} <span style="font-size:14px;font-weight:500;color:var(--text-muted)">registros ativos</span></div>
+          <div class="kpi-meta">
+            <span>Base total extraída: ${totalBrutoGeral} linhas</span>
+            <span>Pronto p/ Excel</span>
+          </div>
+        </div>
+      ` + kpiHtml;
+
+      document.getElementById("kpiGrid").innerHTML = kpiHtml;
+
+      // Matriz por Regional
+      const regionaisSet = new Set();
+      const mapaRegional = {};
+
+      ids.forEach(repId => {
+        mapaRegional[repId] = {};
+        const filtrados = obterRegistrosFiltrados(repId);
+        filtrados.forEach(row => {
+          const colReg = Object.keys(row).find(k => k.toLowerCase().includes("regional") || k.toLowerCase() === "uf");
+          if (colReg && row[colReg]) {
+            const reg = String(row[colReg]);
+            regionaisSet.add(reg);
+            mapaRegional[repId][reg] = (mapaRegional[repId][reg] || 0) + 1;
+          }
+        });
+      });
+
+      const regionaisOrdenadas = Array.from(regionaisSet).sort();
+      let tabelaRegHtml = `
+        <table>
+          <thead>
+            <tr>
+              <th>Regional</th>
+              ${ids.map(id => `<th>${reps[id].nome}</th>`).join("")}
+              <th>Total na Regional</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      regionaisOrdenadas.forEach(reg => {
+        let somaLinha = 0;
+        const colsHtml = ids.map(id => {
+          const qtd = mapaRegional[id][reg] || 0;
+          somaLinha += qtd;
+          return `<td><strong>${qtd}</strong></td>`;
+        }).join("");
+
+        tabelaRegHtml += `
+          <tr>
+            <td><strong>${reg}</strong></td>
+            ${colsHtml}
+            <td style="background:var(--vivo-purple-light);font-weight:800;color:var(--vivo-purple);">${somaLinha}</td>
+          </tr>
+        `;
+      });
+
+      tabelaRegHtml += `</tbody></table>`;
+      document.getElementById("tabelaRegionalResumo").innerHTML = tabelaRegHtml;
+
+      // Quebra por Status
+      let statusHtml = "";
+      ids.forEach(repId => {
+        const r = reps[repId];
+        const filtrados = obterRegistrosFiltrados(repId);
+        const colSt = (r.colunas || []).find(c =>
+          ["status", "situacao", "severidade", "prioridade"].some(k => c.toLowerCase().includes(k))
+        );
+        if (colSt) {
+          const contagem = {};
+          filtrados.forEach(row => {
+            const val = row[colSt] || "N/A";
+            contagem[val] = (contagem[val] || 0) + 1;
+          });
+
+          const badges = Object.entries(contagem).map(([st, qtd]) => `
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #e5e7eb;font-size:13px;">
+              <span>${formatarCelula(colSt, st)}</span>
+              <strong>${qtd}</strong>
+            </div>
+          `).join("");
+
+          statusHtml += `
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px;font-weight:700;color:var(--vivo-purple);text-transform:uppercase;margin-bottom:4px;">
+                ${r.nome} (${colSt})
+              </div>
+              ${badges || "<small style='color:var(--text-muted)'>Sem registros</small>"}
+            </div>
+          `;
+        }
+      });
+
+      document.getElementById("statusBreakdownResumo").innerHTML = statusHtml;
+    }
+
+    async function carregarEstadoInicial() {
+      const res = await fetch("/api/state");
+      ESTADO_ATUAL = await res.json();
+      atualizarInterfaceCompleta();
+    }
+
+    function atualizarInterfaceCompleta() {
+      const badge = document.getElementById("envBadge");
+      if (ESTADO_ATUAL.modo_ambiente === "MOCK") {
+        badge.innerHTML = `${ICONS.lab} <span>MODO SIMULAÇÃO (FORA DA VIVO)</span>`;
+      } else {
+        badge.innerHTML = `${ICONS.building} <span>MODO PRODUÇÃO (REDE VIVO)</span>`;
+      }
+
+      Object.keys(ESTADO_ATUAL.relatorios).forEach(repId => {
+        renderizarPainelRelatorio(repId);
+      });
+      renderizarResumoGeral();
+    }
+
+    async function extrairTodos() {
+      const btn = document.getElementById("btnExtractAll");
+      btn.disabled = true;
+      btn.innerHTML = `${ICONS.sync} <span>Extraindo...</span>`;
+      try {
+        const res = await fetch("/api/extract-all", { method: "POST" });
+        ESTADO_ATUAL = await res.json();
+        atualizarInterfaceCompleta();
+        mostrarNotificacao("Todas as bases foram atualizadas com sucesso!");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `${ICONS.sync} <span>Atualizar Todas as Fontes</span>`;
+      }
+    }
+
+    async function extrairUnico(repId) {
+      mostrarNotificacao(`Sincronizando ${repId}...`);
+      const res = await fetch(`/api/extract/${repId}`, { method: "POST" });
+      const dadosRep = await res.json();
+      ESTADO_ATUAL.relatorios[repId] = dadosRep;
+      renderizarPainelRelatorio(repId);
+      renderizarResumoGeral();
+      mostrarNotificacao(`${dadosRep.nome} atualizado!`);
+    }
+
+    async function fazerUploadManual(repId, file) {
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("file", file);
+      mostrarNotificacao(`Carregando planilha ${file.name}...`);
+
+      const res = await fetch(`/api/upload/${repId}`, {
+        method: "POST",
+        body: formData
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        mostrarNotificacao(`Erro: ${err.detail}`);
+        return;
+      }
+      const dadosRep = await res.json();
+      ESTADO_ATUAL.relatorios[repId] = dadosRep;
+      FILTROS_POR_ABA[repId] = {};
+      renderizarPainelRelatorio(repId);
+      renderizarResumoGeral();
+      mostrarNotificacao(`Planilha ${file.name} importada e filtros detectados automaticamente!`);
+    }
+
+    async function baixarExcelUnificado() {
+      const btn = document.getElementById("btnDownloadExcel");
+      btn.disabled = true;
+      btn.innerHTML = `${ICONS.download} <span>Gerando Excel...</span>`;
+
+      try {
+        const res = await fetch("/api/export-excel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filtros_por_relatorio: FILTROS_POR_ABA,
+            busca_por_relatorio: BUSCA_POR_ABA
+          })
+        });
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const disposition = res.headers.get("Content-Disposition") || "";
+        const match = disposition.match(/filename="(.+)"/);
+        a.download = match ? match[1] : "Relatorio_Unificado_Vivo.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        mostrarNotificacao("Planilha Excel Unificada gerada com sucesso!");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `${ICONS.download} <span>Baixar Excel Unificado (.xlsx)</span>`;
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", carregarEstadoInicial);
+  </script>
+</body>
+</html>
