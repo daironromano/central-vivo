@@ -36,7 +36,7 @@ def buscar_arquivo_downloads_recente(padrao_nome: str) -> pd.DataFrame:
 
 def gerar_mock_anel_comutado() -> pd.DataFrame:
     """
-    Dados simulados do relatório Anel Comutado (BI) para desenvolvimento e testes.
+    Dados simulados do relatório Anel Comutado para desenvolvimento e testes.
     """
     dados = [
         {
@@ -110,7 +110,7 @@ def gerar_mock_anel_comutado() -> pd.DataFrame:
 
 def extrair_anel_comutado(modo_ambiente: str = "MOCK") -> pd.DataFrame:
     """
-    Executa a extração do Anel Comutado (BI).
+    Executa a extração do Anel Comutado.
     """
     if modo_ambiente.upper() == "MOCK":
         return gerar_mock_anel_comutado()

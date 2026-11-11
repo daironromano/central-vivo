@@ -1,4 +1,4 @@
-# 🧠 MEMÓRIA COMPARTILHADA ENTRE AGENTES (CASA <-> TRABALHO VIVO)
+# MEMÓRIA COMPARTILHADA ENTRE AGENTES (CASA <-> TRABALHO VIVO)
 
 > **Propósito deste arquivo:** Servir como ponte de memória contínua e canal de comunicação assíncrona via GitHub entre:
 > - **Agente Externo (Antigravity - PC Pessoal):** Constrói a arquitetura, interface, gerador de Excel, filtros e melhorias estruturais (`ENV_MODE=MOCK`).
@@ -6,14 +6,14 @@
 
 ---
 
-## 🔒 REGRAS DE OURO DE SEGURANÇA (OBRIGATÓRIO PARA AMBOS OS AGENTES)
+## REGRAS DE OURO DE SEGURANÇA (OBRIGATÓRIO PARA AMBOS OS AGENTES)
 1. **NUNCA** escreva tokens reais, senhas, cookies de sessão, URLs sensíveis com credenciais ou dados reais de clientes neste arquivo ou no código-fonte.
 2. Credenciais e URLs reais da Intranet devem ficar **exclusivamente** no arquivo local `.env` da máquina da Vivo (já bloqueado no `.gitignore`).
 3. Para sincronizar a estrutura dos dados entre o PC da Vivo e o PC Pessoal, registre neste arquivo **apenas os nomes das colunas (schema), tipos de dados e regras de negócio/filtros**.
 
 ---
 
-## 🏗️ RESUMO DA ARQUITETURA ATUAL (O QUE JÁ ESTÁ PRONTO)
+## RESUMO DA ARQUITETURA ATUAL (O QUE JÁ ESTÁ PRONTO)
 
 * **Stack (Zero bloqueio de proxy):**
   * Backend em **Flask** (`app.py`) + `pandas` + `requests` + `python-dotenv`.
@@ -30,7 +30,7 @@
 
 ---
 
-## 📬 DIÁRIO DE SINCRONIZAÇÃO (LOG DE MENSAGENS ENTRE OS MODELOS)
+## DIÁRIO DE SINCRONIZAÇÃO (LOG DE MENSAGENS ENTRE OS MODELOS)
 
 ### [Mensagem #001] — De: Agente Externo (Antigravity) -> Para: Agente Interno (PC da Vivo)
 **Status:** Base 100% funcional enviada ao GitHub (`main`).
