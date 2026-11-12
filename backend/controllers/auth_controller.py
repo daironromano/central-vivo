@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, make_response, render_template, redirect, url_for, g
-from src.models.user_model import UserModel
-from src.core.security import (
+from backend.models.user_model import UserModel
+from backend.core.security import (
     SESSION_COOKIE_NAME,
     verificar_bloqueio_bruteforce,
     registrar_falha_login,
@@ -35,15 +35,22 @@ def api_login():
     segundos_bloqueado = verificar_bloqueio_bruteforce(chave_rate)
     if segundos_bloqueado:
         registrar_auditoria("LOGIN_BLOQUEADO_BRUTEFORCE", username or "desconhecido", "-", f"Bloqueado por {segundos_bloqueado}s")
+        msg = f"Muitas tentativas inválidas. Conta protegida temporariamente por {segundos_bloqueado} segundos."
         return jsonify({
-            "detail": f"Muitas tentativas inválidas. Conta protegida temporariamente por {segundos_bloqueado} segundos."
+            "sucesso": False,
+            "erro": msg,
+            "detail": msg,
         }), 429
 
     usuario = user_model.autenticar(username, password)
     if not usuario:
         registrar_falha_login(chave_rate)
         registrar_auditoria("LOGIN_FALHA", username or "desconhecido", "-", "Credenciais inválidas")
-        return jsonify({"detail": "Usuário ou senha inválidos."}), 401
+        return jsonify({
+            "sucesso": False,
+            "erro": "Usuário ou senha inválidos.",
+            "detail": "Usuário ou senha inválidos.",
+        }), 401
 
     limpar_falhas_login(chave_rate)
     sessao_dados = criar_token_sessao(
@@ -56,6 +63,7 @@ def api_login():
 
     resp = make_response(jsonify({
         "status": "ok",
+        "sucesso": True,
         "usuario": usuario,
         "csrf_token": sessao_dados["csrf_token"],
     }))
@@ -67,6 +75,73 @@ def api_login():
         max_age=8 * 3600,
     )
     return resp
+
+
+@auth_bp.route("/api/auth/register", methods=["POST"])
+def api_registrar_conta():
+    payload = request.get_json(silent=True) or {}
+    try:
+        novo = user_model.registrar_auto_cadastro(
+            username=payload.get("username", ""),
+            nome=payload.get("nome", ""),
+            senha=payload.get("password", ""),
+            palavra_recuperacao=payload.get("recovery_key", ""),
+        )
+        registrar_auditoria(
+            "AUTO_CADASTRO_USUARIO",
+            novo["username"],
+            novo["perfil"],
+            f"Novo usuário cadastrado via tela de login ({novo['nome']})",
+        )
+        return jsonify({
+            "status": "ok",
+            "sucesso": True,
+            "mensagem": f"Usuário '{novo['username']}' criado com sucesso! Você já pode entrar.",
+            "usuario": novo,
+        })
+    except ValueError as exc:
+        return jsonify({"sucesso": False, "erro": str(exc), "detail": str(exc)}), 400
+
+
+@auth_bp.route("/api/auth/recover", methods=["POST"])
+def api_recuperar_senha():
+    payload = request.get_json(silent=True) or {}
+    username = (payload.get("username") or "").strip().lower()
+    ip_cliente = request.remote_addr or "127.0.0.1"
+    chave_rate = f"rec:{ip_cliente}:{username}"
+
+    segundos_bloqueado = verificar_bloqueio_bruteforce(chave_rate)
+    if segundos_bloqueado:
+        msg = f"Muitas tentativas de recuperação. Aguarde {segundos_bloqueado} segundos."
+        return jsonify({
+            "sucesso": False,
+            "erro": msg,
+            "detail": msg,
+        }), 429
+
+    try:
+        usuario = user_model.recuperar_senha(
+            username=username,
+            palavra_recuperacao=payload.get("recovery_key", ""),
+            nova_senha=payload.get("new_password", ""),
+        )
+        limpar_falhas_login(chave_rate)
+        registrar_auditoria(
+            "RECUPERACAO_SENHA_SUCESSO",
+            usuario["username"],
+            usuario["perfil"],
+            "Senha redefinida mediante validação da chave de segurança",
+        )
+        return jsonify({
+            "status": "ok",
+            "sucesso": True,
+            "mensagem": f"Senha do usuário '{usuario['username']}' redefinida com sucesso!",
+            "usuario": usuario,
+        })
+    except ValueError as exc:
+        registrar_falha_login(chave_rate)
+        registrar_auditoria("RECUPERACAO_SENHA_FALHA", username or "desconhecido", "-", str(exc))
+        return jsonify({"sucesso": False, "erro": str(exc), "detail": str(exc)}), 400
 
 
 @auth_bp.route("/api/auth/logout", methods=["POST"])
@@ -110,6 +185,7 @@ def salvar_usuario():
             nome=payload.get("nome", ""),
             perfil=payload.get("perfil", "usuario"),
             nova_senha=payload.get("password", ""),
+            palavra_recuperacao=payload.get("recovery_key", ""),
         )
         u = g.usuario_atual
         registrar_auditoria(

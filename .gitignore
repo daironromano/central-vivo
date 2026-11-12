@@ -1,5 +1,7 @@
 # Segurança Corporativa - NUNCA subir credenciais, banco de senhas ou sessões
 .env
+perfis.txt
+api/acessar_api.txt
 data/
 downloads_temp/
 output/

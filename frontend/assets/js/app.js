@@ -18,6 +18,7 @@ const ICONS = {
 let ESTADO_ATUAL = {
   modo_ambiente: "MOCK",
   usuario: { username: "", nome: "", perfil: "usuario", csrf_token: "" },
+  enm_background_job: {},
   relatorios: {}
 };
 
@@ -32,6 +33,8 @@ let BUSCA_POR_ABA = {
   anel_comutado: "",
   celldowntime: ""
 };
+
+let TIMER_ENM_POLL = null;
 
 function headersSeguros(isJson = true) {
   const h = { "X-CSRF-Token": ESTADO_ATUAL.usuario.csrf_token || "" };
@@ -110,6 +113,66 @@ function copiarComandoEnm(cmd) {
   mostrarNotificacao("Comando CLI do Ericsson ENM copiado para a área de transferência!");
 }
 
+async function dispararEnmSegundoPlanoManual() {
+  mostrarNotificacao("Disparando os 3 comandos CLI no Ericsson ENM em 2º plano...");
+  const res = await fetch("/api/enm-cli/run-background", {
+    method: "POST",
+    headers: headersSeguros(true)
+  });
+  if (res.ok) {
+    const data = await res.json();
+    ESTADO_ATUAL.enm_background_job = data.job;
+    atualizarBadgeEnmSegundoPlano();
+    iniciarMonitoramentoEnmSegundoPlano();
+  }
+}
+
+function atualizarBadgeEnmSegundoPlano() {
+  const job = ESTADO_ATUAL.enm_background_job || {};
+  const badge = document.getElementById("enmBgBadge");
+  if (!badge) return;
+
+  if (job.em_execucao) {
+    badge.innerHTML = `${ICONS.terminal} <span>ENM 2º PLANO: EXECUTANDO (${job.etapa_atual || '...'})</span>`;
+  } else {
+    badge.innerHTML = `${ICONS.terminal} <span>ENM 2º PLANO: PRONTO (${job.total_alarmes || 0} alarmes)</span>`;
+  }
+
+  const statusBox = document.getElementById("enmJobStatusText");
+  if (statusBox) {
+    statusBox.textContent = job.em_execucao
+      ? `Executando em 2º plano: ${job.etapa_atual}`
+      : `${job.etapa_atual || 'Concluído'} (Última execução: ${job.ultima_execucao || '-'})`;
+  }
+}
+
+function iniciarMonitoramentoEnmSegundoPlano() {
+  if (TIMER_ENM_POLL) clearInterval(TIMER_ENM_POLL);
+  TIMER_ENM_POLL = setInterval(async () => {
+    try {
+      const res = await fetch("/api/enm-cli/status");
+      if (!res.ok) return;
+      const data = await res.json();
+      const estavaRodando = ESTADO_ATUAL.enm_background_job && ESTADO_ATUAL.enm_background_job.em_execucao;
+      ESTADO_ATUAL.enm_background_job = data.job || {};
+      atualizarBadgeEnmSegundoPlano();
+
+      if (estavaRodando && !ESTADO_ATUAL.enm_background_job.em_execucao) {
+        clearInterval(TIMER_ENM_POLL);
+        TIMER_ENM_POLL = null;
+        await carregarEstadoInicial();
+        mostrarNotificacao("Comandos Ericsson ENM em 2º plano finalizados e consolidados!");
+      } else if (!ESTADO_ATUAL.enm_background_job.em_execucao) {
+        clearInterval(TIMER_ENM_POLL);
+        TIMER_ENM_POLL = null;
+      }
+    } catch (e) {
+      clearInterval(TIMER_ENM_POLL);
+      TIMER_ENM_POLL = null;
+    }
+  }, 1500);
+}
+
 async function enviarCliEnmColado() {
   const fonte = document.getElementById("enmFonteSelect").value;
   const texto = document.getElementById("enmCliTextarea").value;
@@ -136,6 +199,8 @@ async function enviarCliEnmColado() {
 function renderizarBlocoEnmCli(rep) {
   if (rep.id !== "celldowntime" || !rep.enm_cli_info) return "";
   const info = rep.enm_cli_info;
+  const job = info.background_job || ESTADO_ATUAL.enm_background_job || {};
+
   const cmdsHtml = Object.entries(info.comandos).map(([fonte, cmd]) => `
     <div class="enm-cmd-row">
       <div><strong style="color:var(--vivo-purple);">[${fonte}]</strong> <span>${cmd}</span></div>
@@ -149,14 +214,25 @@ function renderizarBlocoEnmCli(rep) {
   return `
     <div class="enm-box">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:13px;font-weight:700;color:var(--vivo-purple);display:flex;align-items:center;gap:6px;">
-          ${ICONS.terminal}
-          <span>INTEGRAÇÃO ERICSSON ENM CLI (${info.url}) — Comandos Oficiais do Tutorial</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--vivo-purple);display:flex;align-items:center;gap:6px;">
+            ${ICONS.terminal}
+            <span>EXECUÇÃO AUTOMÁTICA EM 2º PLANO — ERICSSON ENM CLI (${info.url})</span>
+          </div>
+          <div id="enmJobStatusText" style="font-size:11.5px;color:var(--text-muted);margin-top:3px;">
+            ${job.etapa_atual || 'Worker em 2º plano pronto'} (Última execução: ${job.ultima_execucao || '-'})
+          </div>
         </div>
-        <button class="btn btn-vivo" style="padding:5px 12px;font-size:11.5px;"
-                onclick="const el=document.getElementById('enmPasteArea');el.style.display=el.style.display==='none'?'block':'none';">
-          ${ICONS.terminal} <span>Colar Saída do Terminal ENM (PROCV Automático)</span>
-        </button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-vivo" style="padding:5px 12px;font-size:11.5px;"
+                  onclick="dispararEnmSegundoPlanoManual()">
+            ${ICONS.sync} <span>Executar Comandos ENM em 2º Plano Agora</span>
+          </button>
+          <button class="btn btn-outline" style="padding:5px 12px;font-size:11.5px;"
+                  onclick="const el=document.getElementById('enmPasteArea');el.style.display=el.style.display==='none'?'block':'none';">
+            ${ICONS.terminal} <span>Colar Saída Manual CLI</span>
+          </button>
+        </div>
       </div>
       ${cmdsHtml}
       <div id="enmPasteArea" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed #c084fc;">
@@ -225,14 +301,14 @@ function renderizarPainelRelatorio(repId) {
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">${rep.nome} — <span style="color:var(--vivo-purple)">Aba Excel: ${rep.aba_excel}</span></div>
+          <div class="card-title">${rep.nome} — <span style="color:var(--vivo-purple)">Nome da Planilha no Excel: ${rep.aba_excel}</span></div>
           <small style="color:var(--text-muted)">Origem: ${rep.origem} | Última leitura: ${rep.atualizado_em}</small>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           ${botaoUploadHtml}
           <button class="btn btn-vivo" onclick="extrairUnico('${repId}')">
             ${ICONS.sync}
-            <span>Sincronizar ${rep.nome}</span>
+            <span>Sincronizar ${rep.aba_excel}</span>
           </button>
         </div>
       </div>
@@ -245,7 +321,7 @@ function renderizarPainelRelatorio(repId) {
         <div class="filter-bar-header">
           <span style="display:flex;align-items:center;gap:8px;">
             ${ICONS.sliders}
-            <span>FILTROS ESPECÍFICOS (${rep.nome}) — Colunas idênticas à pasta "formatado/"!</span>
+            <span>FILTROS ESPECÍFICOS (${rep.aba_excel}) — Colunas idênticas à pasta "formatado/"</span>
           </span>
           <button class="btn btn-outline" style="padding:4px 10px; font-size:11px;" onclick="limparFiltrosAba('${repId}')">
             Limpar Filtros
@@ -341,11 +417,11 @@ function renderizarResumoGeral() {
 
     kpiHtml += `
       <div class="kpi-card">
-        <h3>${r.nome}</h3>
+        <h3>Planilha: ${r.aba_excel} (${r.nome})</h3>
         <div class="kpi-value">${filtrados.length} <span style="font-size:14px;font-weight:500;color:var(--text-muted)">/ ${r.registros.length} brutos</span></div>
         <div class="kpi-meta">
           <span>${filtrosAtivos || "Exibindo base completa"}</span>
-          <a href="javascript:void(0)" onclick="trocarAba('${repId}')" style="color:var(--vivo-purple);font-weight:600;text-decoration:none;">Abrir Aba →</a>
+          <a href="javascript:void(0)" onclick="trocarAba('${repId}')" style="color:var(--vivo-purple);font-weight:600;text-decoration:none;">Abrir ${r.aba_excel} →</a>
         </div>
       </div>
     `;
@@ -353,11 +429,11 @@ function renderizarResumoGeral() {
 
   kpiHtml = `
     <div class="kpi-card">
-      <h3>Total Consolidado (3 Relatórios)</h3>
+      <h3>Resumo Online (Não vai no Excel Exportado)</h3>
       <div class="kpi-value">${totalFiltradoGeral} <span style="font-size:14px;font-weight:500;color:var(--text-muted)">registros filtrados</span></div>
       <div class="kpi-meta">
-        <span>Total bruto carregado: ${totalBrutoGeral}</span>
-        <span>Formato Oficial Vivo</span>
+        <span>Total bruto: ${totalBrutoGeral}</span>
+        <span>Excel contém: P1, AnelComutado, CellDowntime</span>
       </div>
     </div>
   ` + kpiHtml;
@@ -389,7 +465,7 @@ function renderizarResumoGeral() {
       <thead>
         <tr>
           <th>UF / Estado</th>
-          ${ids.map(id => `<th>${reps[id].nome}</th>`).join("")}
+          ${ids.map(id => `<th>${reps[id].aba_excel}</th>`).join("")}
           <th>Total na UF</th>
         </tr>
       </thead>
@@ -444,7 +520,7 @@ function renderizarResumoGeral() {
       statusHtml += `
         <div style="margin-bottom:16px;">
           <div style="font-size:12px;font-weight:700;color:var(--vivo-purple);text-transform:uppercase;margin-bottom:4px;">
-            ${r.nome} (por ${colChave})
+            ${r.aba_excel} — ${r.nome} (por ${colChave})
           </div>
           ${linhasOrdenadas || "<small style='color:var(--text-muted)'>Sem registros</small>"}
         </div>
@@ -463,6 +539,9 @@ async function carregarEstadoInicial() {
   }
   ESTADO_ATUAL = await res.json();
   atualizarInterfaceCompleta();
+  if (ESTADO_ATUAL.enm_background_job && ESTADO_ATUAL.enm_background_job.em_execucao) {
+    iniciarMonitoramentoEnmSegundoPlano();
+  }
 }
 
 function atualizarInterfaceCompleta() {
@@ -472,6 +551,8 @@ function atualizarInterfaceCompleta() {
   } else {
     badge.innerHTML = `${ICONS.building} <span>MODO PRODUÇÃO (REDE VIVO)</span>`;
   }
+
+  atualizarBadgeEnmSegundoPlano();
 
   const u = ESTADO_ATUAL.usuario || {};
   const userBadge = document.getElementById("userBadge");
@@ -499,7 +580,8 @@ async function extrairTodos() {
     });
     ESTADO_ATUAL = await res.json();
     atualizarInterfaceCompleta();
-    mostrarNotificacao("Todas as fontes (P1, Anel e CellDowntime) foram atualizadas!");
+    iniciarMonitoramentoEnmSegundoPlano();
+    mostrarNotificacao("Fontes sincronizadas e comandos ENM disparados em 2º plano!");
   } finally {
     btn.disabled = false;
     btn.innerHTML = `${ICONS.sync} <span>Sincronizar Fontes</span>`;
@@ -516,7 +598,7 @@ async function extrairUnico(repId) {
   ESTADO_ATUAL.relatorios[repId] = dadosRep;
   renderizarPainelRelatorio(repId);
   renderizarResumoGeral();
-  mostrarNotificacao(`${dadosRep.nome} sincronizado e formatado!`);
+  mostrarNotificacao(`Planilha ${dadosRep.aba_excel} sincronizada!`);
 }
 
 async function fazerUploadManual(repId, file) {
@@ -540,7 +622,7 @@ async function fazerUploadManual(repId, file) {
   FILTROS_POR_ABA[repId] = {};
   renderizarPainelRelatorio(repId);
   renderizarResumoGeral();
-  mostrarNotificacao(`Base ${file.name} convertida para o formato oficial!`);
+  mostrarNotificacao(`Base ${file.name} convertida para a planilha ${dadosRep.aba_excel}!`);
 }
 
 async function baixarExcelUnificado() {
@@ -569,10 +651,10 @@ async function baixarExcelUnificado() {
     a.click();
     a.remove();
     window.URL.revokeObjectURL(url);
-    mostrarNotificacao("Planilha Excel Unificada gerada no formato oficial!");
+    mostrarNotificacao("Excel baixado contendo exclusivamente as abas: P1, AnelComutado e CellDowntime!");
   } finally {
     btn.disabled = false;
-    btn.innerHTML = `${ICONS.download} <span>Baixar Excel Unificado (.xlsx)</span>`;
+    btn.innerHTML = `${ICONS.download} <span>Baixar Excel (P1, AnelComutado, CellDowntime)</span>`;
   }
 }
 

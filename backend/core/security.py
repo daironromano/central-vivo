@@ -17,22 +17,16 @@ try:
 except ImportError:
     _ARGON2_HASHER = None
 
-# Chave secreta criptográfica de 256 bits
 SECRET_KEY = os.getenv("APP_SECRET_KEY", "vivo-centralizador-enterprise-hmac-key-2026-sec")
 SESSION_COOKIE_NAME = "vivo_hub_session"
 CSRF_HEADER_NAME = "X-CSRF-Token"
 
-# Controle em memória de tentativas de login (Anti Brute-Force)
 _LOGIN_ATTEMPTS: Dict[str, Dict[str, Any]] = {}
 MAX_ATTEMPTS = 5
-LOCKOUT_SECONDS = 300  # 5 minutos
+LOCKOUT_SECONDS = 300
 
 
 def gerar_hash_senha(senha_plana: str) -> str:
-    """
-    Gera hash criptográfico de nível militar usando Argon2id (vencedor do PHC / padrão OWASP)
-    com fallback para PBKDF2-HMAC-SHA256 (600.000 iterações + Salt de 256 bits).
-    """
     if _ARGON2_HASHER is not None:
         return _ARGON2_HASHER.hash(senha_plana)
 
@@ -42,9 +36,6 @@ def gerar_hash_senha(senha_plana: str) -> str:
 
 
 def verificar_senha(senha_plana: str, hash_armazenado: str) -> bool:
-    """
-    Verifica a senha contra o hash Argon2id ou PBKDF2-HMAC-SHA256 em tempo constante.
-    """
     if not senha_plana or not hash_armazenado:
         return False
 
@@ -68,9 +59,6 @@ def verificar_senha(senha_plana: str, hash_armazenado: str) -> bool:
 
 
 def verificar_bloqueio_bruteforce(identificador: str) -> Optional[int]:
-    """
-    Retorna quantos segundos faltam de bloqueio caso o IP/usuário tenha excedido MAX_ATTEMPTS.
-    """
     reg = _LOGIN_ATTEMPTS.get(identificador)
     if not reg:
         return None
@@ -97,9 +85,6 @@ def limpar_falhas_login(identificador: str):
 
 
 def criar_token_sessao(username: str, nome: str, perfil: str) -> Dict[str, str]:
-    """
-    Gera um token de sessão assinado via HMAC-SHA256 + CSRF Token exclusivo por sessão.
-    """
     csrf_token = secrets.token_urlsafe(32)
     payload = {
         "sub": username,
@@ -107,7 +92,7 @@ def criar_token_sessao(username: str, nome: str, perfil: str) -> Dict[str, str]:
         "perfil": perfil,
         "csrf": csrf_token,
         "iat": int(time.time()),
-        "exp": int(time.time()) + (8 * 3600),  # Expiração de 8h (turno de trabalho)
+        "exp": int(time.time()) + (8 * 3600),
     }
     payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")
     assinatura = hmac.new(
@@ -138,7 +123,8 @@ def validar_token_sessao(token: str) -> Optional[Dict[str, Any]]:
 
 
 def registrar_auditoria(acao: str, usuario: str, perfil: str, detalhes: str = ""):
-    pasta_data = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+    raiz = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    pasta_data = os.path.join(raiz, "data")
     os.makedirs(pasta_data, exist_ok=True)
     caminho_log = os.path.join(pasta_data, "audit_log.jsonl")
     evento = {
@@ -157,8 +143,8 @@ def registrar_auditoria(acao: str, usuario: str, perfil: str, detalhes: str = ""
 
 
 def ler_ultimos_logs_auditoria(limite: int = 50):
-    pasta_data = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
-    caminho_log = os.path.join(pasta_data, "audit_log.jsonl")
+    raiz = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    caminho_log = os.path.join(raiz, "data", "audit_log.jsonl")
     if not os.path.exists(caminho_log):
         return []
     try:
@@ -170,12 +156,6 @@ def ler_ultimos_logs_auditoria(limite: int = 50):
 
 
 def exigir_autenticacao(perfis_permitidos=None):
-    """
-    Decorator MVC de Segurança:
-    1. Verifica o Cookie HttpOnly de sessão assinada HMAC-SHA256.
-    2. Em requisições mutáveis (POST, PUT, DELETE), exige o cabeçalho X-CSRF-Token.
-    3. Valida o RBAC (perfil 'administrador' vs 'usuario').
-    """
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -186,7 +166,6 @@ def exigir_autenticacao(perfis_permitidos=None):
                     return jsonify({"detail": "Sessão expirada ou não autenticada."}), 401
                 return redirect(url_for("auth_bp.pagina_login"))
 
-            # Validação Anti-CSRF em métodos de escrita
             if request.method in ("POST", "PUT", "DELETE"):
                 csrf_enviado = request.headers.get(CSRF_HEADER_NAME, "")
                 if not csrf_enviado or not hmac.compare_digest(csrf_enviado, sessao.get("csrf", "")):
@@ -210,9 +189,6 @@ def exigir_autenticacao(perfis_permitidos=None):
 
 
 def aplicar_headers_seguranca(response):
-    """
-    Aplica cabeçalhos HTTP de segurança avançada (OWASP Hardening).
-    """
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "same-origin"

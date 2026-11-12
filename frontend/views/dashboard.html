@@ -18,12 +18,13 @@
       </div>
       <div>
         <h1>Centralizador Diário de Relatórios — Vivo</h1>
-        <p>P1 (DOMUS API) • Anel Comutado (BI Playwright) • CellDowntime (Ericsson ENM CLI)</p>
+        <p>Planilhas Exportadas: P1 • AnelComutado • CellDowntime (Resumo exclusivo na Plataforma Online)</p>
       </div>
     </div>
 
     <div class="top-actions">
       <span id="envBadge" class="env-badge">MODO: CARREGANDO...</span>
+      <span id="enmBgBadge" class="enm-bg-badge" title="Status dos Comandos CLI Ericsson ENM em 2º Plano">ENM 2º PLANO: ATIVO</span>
       <span id="userBadge" class="user-badge">USUÁRIO: ...</span>
       <button class="btn btn-secondary" onclick="extrairTodos()" id="btnExtractAll">
         <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
@@ -31,7 +32,7 @@
       </button>
       <button class="btn btn-primary" onclick="baixarExcelUnificado()" id="btnDownloadExcel">
         <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-        <span>Baixar Excel Unificado (.xlsx)</span>
+        <span>Baixar Excel (P1, AnelComutado, CellDowntime)</span>
       </button>
       <button class="btn btn-secondary" onclick="encerrarSessao()" title="Sair do Sistema">
         <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
@@ -44,7 +45,7 @@
   <nav class="tabs-bar">
     <button class="tab-btn active" onclick="trocarAba('resumo')" id="tabbtn-resumo">
       <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-      <span>Resumo Geral (Consolidado)</span>
+      <span>Resumo Geral (Exclusivo Online)</span>
     </button>
     <button class="tab-btn" onclick="trocarAba('p1_domus')" id="tabbtn-p1_domus">
       <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
@@ -53,12 +54,12 @@
     </button>
     <button class="tab-btn" onclick="trocarAba('anel_comutado')" id="tabbtn-anel_comutado">
       <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
-      <span>Anel Comutado (BI)</span>
+      <span>AnelComutado (BI)</span>
       <span class="tab-counter" id="count-anel_comutado">0</span>
     </button>
     <button class="tab-btn" onclick="trocarAba('celldowntime')" id="tabbtn-celldowntime">
       <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-      <span>CellDowntime (ENM CLI)</span>
+      <span>CellDowntime (ENM CLI 2º Plano)</span>
       <span class="tab-counter" id="count-celldowntime">0</span>
     </button>
     <button class="tab-btn" onclick="trocarAba('admin')" id="tabbtn-admin" style="display:none;">
@@ -69,7 +70,7 @@
 
   <!-- CONTEÚDO PRINCIPAL -->
   <main class="container">
-    <!-- ABA 1: RESUMO GERAL -->
+    <!-- ABA 1: RESUMO GERAL (APENAS ONLINE) -->
     <section id="panel-resumo" class="tab-panel active">
       <div class="kpi-grid" id="kpiGrid"></div>
 
@@ -78,7 +79,7 @@
           <div class="card-header">
             <span class="card-title">
               <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-              <span>Matriz Consolidada por UF (P1 DOMUS x Anel Comutado x CellDowntime)</span>
+              <span>Matriz Consolidada por UF (P1 x AnelComutado x CellDowntime)</span>
             </span>
           </div>
           <div class="table-wrapper" id="tabelaRegionalResumo"></div>
@@ -131,7 +132,7 @@
                 </select>
               </div>
               <div class="filter-group">
-                <label>Nova Senha (mín. 8 caract.)</label>
+                <label>Nova Senha (mín. 6 caract.)</label>
                 <input type="password" id="admPassword" placeholder="Deixe vazio p/ manter atual" />
               </div>
             </div>

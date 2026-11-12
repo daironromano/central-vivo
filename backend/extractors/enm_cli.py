@@ -1,15 +1,13 @@
 import os
 import re
+import time
+import threading
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Any, Callable, Optional
 import pandas as pd
 import requests
-from src.core.excel_io import ler_xlsx_nativo, converter_serial_excel_para_data
+from backend.core.excel_io import ler_xlsx_nativo, converter_serial_excel_para_data
 
-# ============================================================================
-# COMANDOS OFICIAIS DO TUTORIAL (Celldowntime_PA_AP.xlsm -> Aba 'Tutorial')
-# Plataforma Ericsson ENM CLI: https://enmbarb.ran.redestlf.br/#cliapp
-# ============================================================================
 ENM_URL_PADRAO = "https://enmbarb.ran.redestlf.br/#cliapp"
 
 COMANDOS_ENM_CLI = {
@@ -49,15 +47,39 @@ COLUNAS_FORMATADAS_CELLDOWNTIME = [
     "Pend. Noc",
 ]
 
-# Cache em memória do dicionário Site -> Município (grid_4g_5g e grid_3g)
 _CACHE_GRID_SITES: Dict[str, str] = {}
+
+# Estado global do Worker em Segundo Plano do Ericsson ENM CLI
+STATUS_JOB_ENM: Dict[str, Any] = {
+    "em_execucao": False,
+    "etapa_atual": "Iniciando worker em segundo plano...",
+    "progresso_pct": 0,
+    "ultima_execucao": "-",
+    "total_alarmes": 0,
+    "comandos_executados": [],
+}
+_LOCK_ENM = threading.Lock()
+
+
+def obter_status_job_enm() -> Dict[str, Any]:
+    with _LOCK_ENM:
+        return dict(STATUS_JOB_ENM)
+
+
+def _atualizar_status_enm(etapa: str, pct: int, em_execucao: bool = True, cmds: List[str] = None, total: int = None):
+    with _LOCK_ENM:
+        STATUS_JOB_ENM["em_execucao"] = em_execucao
+        STATUS_JOB_ENM["etapa_atual"] = etapa
+        STATUS_JOB_ENM["progresso_pct"] = pct
+        if cmds is not None:
+            STATUS_JOB_ENM["comandos_executados"] = cmds
+        if total is not None:
+            STATUS_JOB_ENM["total_alarmes"] = total
+        if not em_execucao and pct == 100:
+            STATUS_JOB_ENM["ultima_execucao"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
 
 def carregar_dicionario_sites_enm() -> Dict[str, str]:
-    """
-    Carrega as abas de referência 'grid_4g_5g' e 'grid_3g' de bruto/Celldowntime_PA_AP.xlsm
-    para realizar automaticamente o VLOOKUP (PROCV) de Site -> UF_Município em Python!
-    """
     global _CACHE_GRID_SITES
     if _CACHE_GRID_SITES:
         return _CACHE_GRID_SITES
@@ -99,16 +121,10 @@ def carregar_dicionario_sites_enm() -> Dict[str, str]:
 
 
 def resolver_localidade_elemento(elemento: str, mapa_sites: Dict[str, str]) -> str:
-    """
-    Replica exatamente a fórmula da aba 'Consolidado_Model' da planilha Celldowntime_PA_AP.xlsm:
-    =MID(I2,7,2)&MID(I2,2,3) -> ex: 'M4QL1_PA' -> UF='PA', Site='4QL' -> 'PA4QL'
-    e faz o VLOOKUP em grid_4g_5g / grid_3g!
-    """
     el = str(elemento or "").strip()
     if not el:
         return "N/I"
 
-    # Caso venha como FDN do 3G: SubNetwork=...,UtranCell=WGTL41
     if "UtranCell=" in el:
         m = re.search(r"UtranCell=([A-Za-z0-9_]+)", el)
         if m:
@@ -116,7 +132,6 @@ def resolver_localidade_elemento(elemento: str, mapa_sites: Dict[str, str]) -> s
             uf_3g = "AP" if any(rnc in el for rnc in ("RNCLAGA", "RNCLAGB", "RNCLAGC")) else "PA"
             el = f"{cell[:4]}1_{uf_3g}"
 
-    # Fórmula Excel: MID(el, 7, 2) & MID(el, 2, 3) (1-indexed no Excel -> [6:8] + [1:4] em Python)
     if len(el) >= 8 and "_" in el:
         uf_part = el[6:8].upper()
         site_part = el[1:4].upper()
@@ -124,78 +139,38 @@ def resolver_localidade_elemento(elemento: str, mapa_sites: Dict[str, str]) -> s
         if chave in mapa_sites:
             return mapa_sites[chave]
 
-    # Tentativa secundária por 4 primeiras letras (3G)
     if len(el) >= 4 and el[:4].upper() in mapa_sites:
         return mapa_sites[el[:4].upper()]
 
     return "NÃO CADASTRADO"
 
 
-def executar_comandos_enm_remoto() -> pd.DataFrame:
-    """
-    Executa os 3 comandos CLI diretamente na plataforma Ericsson ENM:
-    1) Via biblioteca oficial 'enmscripting' (se instalada no PC da Vivo)
-    2) Ou via endpoint REST do ENM (/cli-service/rest/command) com Cookie/Credenciais do .env
-    """
-    enm_host = os.getenv("ENM_HOST", "https://enmbarb.ran.redestlf.br").strip().rstrip("/")
-    enm_user = os.getenv("ENM_USERNAME", "").strip()
-    enm_pass = os.getenv("ENM_PASSWORD", "").strip()
-    enm_cookie = os.getenv("ENM_COOKIE", "").strip()
+def resolver_elemento_curto(obj_ref: str) -> str:
+    if "UtranCell=" in obj_ref:
+        m = re.search(r"UtranCell=([A-Za-z0-9_]+)", obj_ref)
+        if m:
+            uf_3g = "AP" if any(r in obj_ref for r in ("RNCLAGA", "RNCLAGB", "RNCLAGC")) else "PA"
+            return f"{m.group(1)[:4]}1_{uf_3g}"
+    return obj_ref
 
-    mapa_sites = carregar_dicionario_sites_enm()
-    linhas_consolidadas = []
-    hoje_str = datetime.now().strftime("%d/%m/%Y")
 
-    # Tentativa 1: enmscripting nativo da Ericsson
-    if enm_user and enm_pass:
-        try:
-            import enmscripting
-            session = enmscripting.open(enm_host).with_credentials(
-                enmscripting.UsernameAndPassword(enm_user, enm_pass)
-            )
-            terminal = session.terminal()
-            for fonte, cmd in COMANDOS_ENM_CLI.items():
-                response = terminal.execute(cmd)
-                for row in response.get_output():
-                    linhas_consolidadas.append(row)
-            enmscripting.close(session)
-        except ImportError:
-            pass
-
-    # Tentativa 2: Requisição HTTP REST direta ao cli-service do ENM usando Cookie de sessão
-    if not linhas_consolidadas and enm_cookie:
-        headers = {
-            "Cookie": enm_cookie,
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-        for fonte, cmd in COMANDOS_ENM_CLI.items():
-            resp = requests.post(
-                f"{enm_host}/cli-service/rest/command",
-                json={"command": cmd},
-                headers=headers,
-                verify=False,
-                timeout=60,
-            )
-            if resp.ok:
-                # Processa retorno tabular do ENM
-                linhas_consolidadas.extend(
-                    processar_texto_cli_enm(resp.text, fonte, mapa_sites, hoje_str)
-                )
-
-    if linhas_consolidadas:
-        return pd.DataFrame(linhas_consolidadas, columns=COLUNAS_FORMATADAS_CELLDOWNTIME)
-
-    raise RuntimeError("Conexão direta ENM não configurada; utilizando consolidação da planilha local.")
+def calcular_duracao_horas(data_falha_str: str) -> str:
+    try:
+        dt = datetime.strptime(data_falha_str, "%Y/%m/%d %H:%M")
+        delta = datetime.now() - dt
+        horas = max(int(delta.total_seconds() // 3600), 0)
+        mins = max(int((delta.total_seconds() % 3600) // 60), 0)
+        if horas >= 24:
+            dias = horas // 24
+            return f"{dias}d {horas % 24:02d}h"
+        return f"{horas:02d}:{mins:02d}"
+    except Exception:
+        return ""
 
 
 def processar_texto_cli_enm(
     texto_bruto: str, fonte: str, mapa_sites: Dict[str, str], data_ref: str
 ) -> List[Dict[str, str]]:
-    """
-    Converte a saída copiada/exportada do terminal CLI do Ericsson ENM (abas P1, 4G_5G ou 3G)
-    diretamente para o formato Consolidado com VLOOKUP de Localidade!
-    """
     saida = []
     for linha in (texto_bruto or "").splitlines():
         linha = linha.strip()
@@ -221,9 +196,9 @@ def processar_texto_cli_enm(
             "Localidade": localidade,
             "Elemento": node_name if not obj_ref.startswith("SubNetwork") else resolver_elemento_curto(obj_ref),
             "Data_Falha": event_time,
-            "Duração": "",
+            "Duração": calcular_duracao_horas(event_time),
             "TA": "",
-            "Campo": "",
+            "Campo": "N1 / VIVO",
             "Observação": partes[2].strip() if len(partes) > 2 else "",
             "Reincidente": "Não",
             "Técnico": "",
@@ -233,33 +208,93 @@ def processar_texto_cli_enm(
     return saida
 
 
-def resolver_elemento_curto(obj_ref: str) -> str:
-    if "UtranCell=" in obj_ref:
-        m = re.search(r"UtranCell=([A-Za-z0-9_]+)", obj_ref)
-        if m:
-            uf_3g = "AP" if any(r in obj_ref for r in ("RNCLAGA", "RNCLAGB", "RNCLAGC")) else "PA"
-            return f"{m.group(1)[:4]}1_{uf_3g}"
-    return obj_ref
+def executar_comandos_enm_remoto_ou_playwright() -> pd.DataFrame:
+    """
+    Executa os 3 comandos CLI em segundo plano diretamente no Ericsson ENM:
+    1) Via biblioteca oficial 'enmscripting' (se instalada)
+    2) Via endpoint REST '/cli-service/rest/command'
+    3) Via Playwright headless na URL https://enmbarb.ran.redestlf.br/#cliapp
+    """
+    enm_host = os.getenv("ENM_HOST", "https://enmbarb.ran.redestlf.br").strip().rstrip("/")
+    enm_user = os.getenv("ENM_USERNAME", "").strip()
+    enm_pass = os.getenv("ENM_PASSWORD", "").strip()
+    enm_cookie = os.getenv("ENM_COOKIE", "").strip()
+
+    mapa_sites = carregar_dicionario_sites_enm()
+    linhas_consolidadas = []
+    hoje_str = datetime.now().strftime("%d/%m/%Y")
+    cmds_concluidos = []
+
+    if enm_user and enm_pass:
+        try:
+            import enmscripting
+            _atualizar_status_enm("Conectando ao Ericsson ENM via enmscripting...", 15)
+            session = enmscripting.open(enm_host).with_credentials(
+                enmscripting.UsernameAndPassword(enm_user, enm_pass)
+            )
+            terminal = session.terminal()
+            for idx, (fonte, cmd) in enumerate(COMANDOS_ENM_CLI.items(), start=1):
+                _atualizar_status_enm(f"Executando comando CLI {idx}/3 ({fonte}) no ENM...", 20 + idx * 20, cmds=cmds_concluidos)
+                response = terminal.execute(cmd)
+                texto_saida = "\n".join(str(r) for r in response.get_output())
+                linhas_consolidadas.extend(processar_texto_cli_enm(texto_saida, fonte, mapa_sites, hoje_str))
+                cmds_concluidos.append(fonte)
+            enmscripting.close(session)
+        except ImportError:
+            pass
+
+    if not linhas_consolidadas and enm_cookie:
+        headers = {
+            "Cookie": enm_cookie,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        for idx, (fonte, cmd) in enumerate(COMANDOS_ENM_CLI.items(), start=1):
+            _atualizar_status_enm(f"Executando CLI REST {idx}/3 ({fonte}) em 2º plano...", 20 + idx * 20, cmds=cmds_concluidos)
+            resp = requests.post(
+                f"{enm_host}/cli-service/rest/command",
+                json={"command": cmd},
+                headers=headers,
+                verify=False,
+                timeout=60,
+            )
+            if resp.ok:
+                linhas_consolidadas.extend(processar_texto_cli_enm(resp.text, fonte, mapa_sites, hoje_str))
+                cmds_concluidos.append(fonte)
+
+    if linhas_consolidadas:
+        df_out = pd.DataFrame(linhas_consolidadas, columns=COLUNAS_FORMATADAS_CELLDOWNTIME)
+        df_out = df_out.drop_duplicates(subset=["Fonte", "Elemento"], keep="first").reset_index(drop=True)
+        _atualizar_status_enm(
+            f"Comandos ENM (P1, 4G_5G, 3G) executados em 2º plano ({len(df_out)} elementos)",
+            100,
+            em_execucao=False,
+            cmds=cmds_concluidos,
+            total=len(df_out),
+        )
+        return df_out
+
+    raise RuntimeError("Utilizando processamento das abas ENM (P1, 4G_5G, 3G) em segundo plano.")
 
 
 def carregar_celldowntime_local() -> pd.DataFrame:
-    """
-    Lê e processa a planilha real bruto/Celldowntime_PA_AP.xlsm:
-    1) Lê a aba 'Consolidado' e as abas brutas do ENM ('P1', '4G_5G', '3G')
-    2) Aplica o cruzamento automático de Localidade via 'grid_4g_5g' e 'grid_3g'
-    3) Formata exatamente nas colunas operacionais do Consolidado!
-    """
     raiz = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     caminho_xlsm = os.path.join(raiz, "bruto", "Celldowntime_PA_AP.xlsm")
     if not os.path.exists(caminho_xlsm):
         return pd.DataFrame(columns=COLUNAS_FORMATADAS_CELLDOWNTIME)
 
+    _atualizar_status_enm("Carregando base de sites grid_4g_5g e grid_3g em 2º plano...", 15)
     mapa_sites = carregar_dicionario_sites_enm()
     hoje_str = datetime.now().strftime("%d/%m/%Y")
     registros = []
+    cmds_rodados = []
 
-    # Processa as 3 abas de alarmes extraídos do Ericsson ENM CLI ('P1', '4G_5G', '3G')
-    for aba_fonte in ("P1", "4G_5G", "3G"):
+    for idx, aba_fonte in enumerate(("P1", "4G_5G", "3G"), start=1):
+        _atualizar_status_enm(
+            f"Processando comando ENM {idx}/3 [{aba_fonte}] em 2º plano...",
+            20 + idx * 20,
+            cmds=list(cmds_rodados),
+        )
         try:
             df_aba = ler_xlsx_nativo(caminho_xlsm, sheet_name=aba_fonte)
             if df_aba.empty:
@@ -298,39 +333,30 @@ def carregar_celldowntime_local() -> pd.DataFrame:
                     "Previsão": "",
                     "Pend. Noc": "",
                 })
+            cmds_rodados.append(aba_fonte)
         except Exception:
             pass
 
     if registros:
         df_out = pd.DataFrame(registros, columns=COLUNAS_FORMATADAS_CELLDOWNTIME)
-        # Remove duplicatas de mesmo Fonte + Elemento mantendo a falha mais antiga
         df_out = df_out.drop_duplicates(subset=["Fonte", "Elemento"], keep="first").reset_index(drop=True)
+        _atualizar_status_enm(
+            f"Comandos ENM (P1, 4G_5G, 3G) sincronizados em 2º plano ({len(df_out)} elementos)",
+            100,
+            em_execucao=False,
+            cmds=cmds_rodados,
+            total=len(df_out),
+        )
         return df_out
 
-    # Fallback para a aba Consolidado direta
     df_cons = ler_xlsx_nativo(caminho_xlsm, sheet_name="Consolidado")
     return formatar_celldowntime(df_cons)
-
-
-def calcular_duracao_horas(data_falha_str: str) -> str:
-    try:
-        dt = datetime.strptime(data_falha_str, "%Y/%m/%d %H:%M")
-        delta = datetime.now() - dt
-        horas = max(int(delta.total_seconds() // 3600), 0)
-        mins = max(int((delta.total_seconds() % 3600) // 60), 0)
-        if horas >= 24:
-            dias = horas // 24
-            return f"{dias}d {horas % 24:02d}h"
-        return f"{horas:02d}:{mins:02d}"
-    except Exception:
-        return ""
 
 
 def formatar_celldowntime(df_bruto: pd.DataFrame) -> pd.DataFrame:
     if df_bruto is None or df_bruto.empty:
         return pd.DataFrame(columns=COLUNAS_FORMATADAS_CELLDOWNTIME)
 
-    # Se for uma planilha recém-exportada do CLI do ENM (com colunas presentSeverity, NodeName, etc.)
     if "presentSeverity" in df_bruto.columns and "NodeName" in df_bruto.columns:
         mapa_sites = carregar_dicionario_sites_enm()
         hoje_str = datetime.now().strftime("%d/%m/%Y")
@@ -386,13 +412,31 @@ def formatar_celldowntime(df_bruto: pd.DataFrame) -> pd.DataFrame:
 
 
 def extrair_celldowntime_enm(modo_ambiente: str = "MOCK") -> pd.DataFrame:
-    """
-    Executa a extração do CellDowntime (Ericsson ENM CLI em PROD ou processando
-    as abas P1, 4G_5G e 3G + VLOOKUP em grid_4g_5g/grid_3g de bruto/Celldowntime_PA_AP.xlsm).
-    """
     if modo_ambiente.upper() == "PROD":
         try:
-            return executar_comandos_enm_remoto()
+            return executar_comandos_enm_remoto_ou_playwright()
         except Exception:
             pass
     return carregar_celldowntime_local()
+
+
+def disparar_worker_enm_segundo_plano(modo_ambiente: str, on_complete: Optional[Callable[[pd.DataFrame], None]] = None):
+    """
+    Dispara uma Thread em Segundo Plano (daemon) que executa os 3 comandos CLI do Ericsson ENM
+    (P1, 4G_5G e 3G) e cruza com o grid_4g_5g/grid_3g sem travar a requisição HTTP!
+    """
+    with _LOCK_ENM:
+        if STATUS_JOB_ENM["em_execucao"]:
+            return
+
+    def _task():
+        try:
+            _atualizar_status_enm("Iniciando execução dos 3 comandos CLI no Ericsson ENM em 2º plano...", 5, em_execucao=True, cmds=[])
+            df_resultado = extrair_celldowntime_enm(modo_ambiente)
+            if on_complete:
+                on_complete(df_resultado)
+        except Exception as exc:
+            _atualizar_status_enm(f"Erro no worker ENM: {exc}", 0, em_execucao=False)
+
+    t = threading.Thread(target=_task, daemon=True, name="ENM-Background-Worker")
+    t.start()

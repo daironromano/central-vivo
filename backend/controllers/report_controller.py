@@ -3,10 +3,11 @@ from datetime import datetime
 import pandas as pd
 from flask import Blueprint, request, jsonify, send_file, render_template, g
 
-from src.models.report_model import ReportModel, CATALOGO_RELATORIOS
-from src.core.excel_builder import gerar_excel_unificado
-from src.core.excel_io import ler_xlsx_nativo
-from src.core.security import exigir_autenticacao, registrar_auditoria
+from backend.models.report_model import ReportModel, CATALOGO_RELATORIOS
+from backend.extractors.enm_cli import obter_status_job_enm
+from backend.core.excel_builder import gerar_excel_unificado
+from backend.core.excel_io import ler_xlsx_nativo
+from backend.core.security import exigir_autenticacao, registrar_auditoria
 
 report_bp = Blueprint("report_bp", __name__)
 report_model = ReportModel()
@@ -15,6 +16,8 @@ report_model = ReportModel()
 @report_bp.route("/", methods=["GET"])
 @exigir_autenticacao()
 def dashboard_principal():
+    # Ao entrar na plataforma, já garante que os comandos do ENM rodem em segundo plano!
+    report_model.iniciar_enm_em_segundo_plano()
     return render_template("dashboard.html")
 
 
@@ -22,8 +25,11 @@ def dashboard_principal():
 @exigir_autenticacao()
 def obter_estado_completo():
     u = g.usuario_atual
+    status_enm = obter_status_job_enm()
     return jsonify({
         "modo_ambiente": report_model.obter_modo_ambiente(),
+        "enm_background_status": status_enm,
+        "enm_background_job": status_enm,
         "usuario": {
             "username": u.get("sub"),
             "nome": u.get("nome"),
@@ -37,13 +43,44 @@ def obter_estado_completo():
     })
 
 
+@report_bp.route("/api/enm-cli/status", methods=["GET"])
+@exigir_autenticacao()
+def status_enm_segundo_plano():
+    status_enm = obter_status_job_enm()
+    return jsonify({
+        "job": status_enm,
+        "status_background": status_enm,
+        "celldowntime": report_model.serializar_relatorio("celldowntime"),
+    })
+
+
+@report_bp.route("/api/enm-cli/run-background", methods=["POST"])
+@exigir_autenticacao()
+def acionar_enm_segundo_plano():
+    report_model.iniciar_enm_em_segundo_plano()
+    u = g.usuario_atual
+    registrar_auditoria(
+        "ENM_JOB_SEGUNDO_PLANO",
+        u.get("sub", ""),
+        u.get("perfil", ""),
+        "Disparou execução dos 3 comandos CLI do Ericsson ENM em segundo plano",
+    )
+    status_enm = obter_status_job_enm()
+    return jsonify({
+        "status": "started",
+        "job": status_enm,
+        "status_background": status_enm,
+    })
+
+
 @report_bp.route("/api/extract-all", methods=["POST"])
 @exigir_autenticacao()
 def extrair_todos_relatorios():
-    for rep_id in CATALOGO_RELATORIOS:
-        report_model.carregar_relatorio(rep_id)
+    report_model.carregar_relatorio("p1_domus")
+    report_model.carregar_relatorio("anel_comutado")
+    report_model.iniciar_enm_em_segundo_plano()
     u = g.usuario_atual
-    registrar_auditoria("EXTRAIR_TODOS", u.get("sub", ""), u.get("perfil", ""), "Sincronizou P1, Anel e CellDowntime")
+    registrar_auditoria("EXTRAIR_TODOS", u.get("sub", ""), u.get("perfil", ""), "Sincronizou P1, AnelComutado e disparou ENM em 2º plano")
     return obter_estado_completo()
 
 
@@ -52,6 +89,8 @@ def extrair_todos_relatorios():
 def extrair_relatorio_unico(report_id: str):
     if report_id not in CATALOGO_RELATORIOS:
         return jsonify({"detail": "Relatório não encontrado."}), 404
+    if report_id == "celldowntime":
+        report_model.iniciar_enm_em_segundo_plano()
     dados = report_model.carregar_relatorio(report_id)
     u = g.usuario_atual
     registrar_auditoria("EXTRAIR_RELATORIO", u.get("sub", ""), u.get("perfil", ""), f"Sincronizou {report_id}")
@@ -166,7 +205,12 @@ def exportar_excel_unificado():
     nome_arquivo = f"Centralizador_Vivo_{datetime.now().strftime('%Y-%m-%d_%H%M')}.xlsx"
 
     u = g.usuario_atual
-    registrar_auditoria("EXPORTAR_EXCEL", u.get("sub", ""), u.get("perfil", ""), f"Baixou {nome_arquivo}")
+    registrar_auditoria(
+        "EXPORTAR_EXCEL",
+        u.get("sub", ""),
+        u.get("perfil", ""),
+        f"Baixou {nome_arquivo} (Abas: P1, AnelComutado, CellDowntime)",
+    )
 
     return send_file(
         BytesIO(xlsx_bytes),

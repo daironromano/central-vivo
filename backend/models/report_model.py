@@ -3,23 +3,29 @@ from datetime import datetime
 from typing import Dict, Any, List
 import pandas as pd
 
-from src.extractors.domus_api import extrair_p1_domus, formatar_p1_domus
-from src.extractors.anel_playwright import extrair_anel_comutado, formatar_anel_comutado
-from src.extractors.enm_cli import (
+from backend.extractors.domus_api import extrair_p1_domus, formatar_p1_domus
+from backend.extractors.anel_playwright import extrair_anel_comutado, formatar_anel_comutado
+from backend.extractors.enm_cli import (
     extrair_celldowntime_enm,
     formatar_celldowntime,
     processar_texto_cli_enm,
     carregar_dicionario_sites_enm,
+    disparar_worker_enm_segundo_plano,
+    obter_status_job_enm,
     COMANDOS_ENM_CLI,
     ENM_URL_PADRAO,
 )
 
 
+# Nomes de abas no Excel estritamente padronizados conforme solicitado:
+# portal_calamidade => P1
+# export => AnelComutado
+# Consolidado_CellDowntime => CellDowntime
 CATALOGO_RELATORIOS = {
     "p1_domus": {
         "id": "p1_domus",
         "nome": "P1 (DOMUS)",
-        "aba_excel": "portal_calamidade_tickets_total",
+        "aba_excel": "P1",
         "origem": "API DOMUS (10.215.39.118:8001)",
         "extrator": extrair_p1_domus,
         "formatador": formatar_p1_domus,
@@ -29,7 +35,7 @@ CATALOGO_RELATORIOS = {
     "anel_comutado": {
         "id": "anel_comutado",
         "nome": "Anel Comutado (BI)",
-        "aba_excel": "Export",
+        "aba_excel": "AnelComutado",
         "origem": "Portal BI (Playwright)",
         "extrator": extrair_anel_comutado,
         "formatador": formatar_anel_comutado,
@@ -47,8 +53,8 @@ CATALOGO_RELATORIOS = {
     "celldowntime": {
         "id": "celldowntime",
         "nome": "CellDowntime (ENM CLI)",
-        "aba_excel": "Consolidado_CellDowntime",
-        "origem": "Ericsson ENM CLI (P1 / 4G_5G / 3G)",
+        "aba_excel": "CellDowntime",
+        "origem": "Ericsson ENM CLI (2º Plano Automático)",
         "extrator": extrair_celldowntime_enm,
         "formatador": formatar_celldowntime,
         "colunas_filtro_sugeridas": ["Fonte", "UF", "Localidade", "Campo", "Reincidente", "Pend. Noc"],
@@ -59,8 +65,8 @@ CATALOGO_RELATORIOS = {
 
 class ReportModel:
     """
-    Model MVC que gerencia o ciclo de vida dos 3 relatórios:
-    P1 (DOMUS), Anel Comutado (Playwright BI) e CellDowntime (Ericsson ENM CLI).
+    Model MVC que gerencia os 3 relatórios e mantém o Worker do Ericsson ENM CLI
+    executando automaticamente em segundo plano.
     """
 
     def __init__(self):
@@ -71,8 +77,24 @@ class ReportModel:
         return os.getenv("ENV_MODE", "MOCK").upper()
 
     def inicializar_todos(self):
-        for rep_id in CATALOGO_RELATORIOS:
-            self.carregar_relatorio(rep_id)
+        self.carregar_relatorio("p1_domus")
+        self.carregar_relatorio("anel_comutado")
+        # Carrega estado inicial e também dispara o worker assíncrono em 2º plano para o ENM CLI
+        self.carregar_relatorio("celldowntime")
+        self.iniciar_enm_em_segundo_plano()
+
+    def iniciar_enm_em_segundo_plano(self):
+        modo = self.obter_modo_ambiente()
+
+        def _ao_concluir_enm(df_enm: pd.DataFrame):
+            agora = f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')} (Job ENM 2º Plano)"
+            self.estado_memoria["celldowntime"] = {
+                "df": df_enm.reset_index(drop=True),
+                "atualizado_em": agora,
+                "erro": None,
+            }
+
+        disparar_worker_enm_segundo_plano(modo, on_complete=_ao_concluir_enm)
 
     def _descobrir_colunas_filtraveis(self, df: pd.DataFrame, sugeridas: List[str]) -> Dict[str, List[str]]:
         if df is None or df.empty:
@@ -126,10 +148,6 @@ class ReportModel:
         return self.serializar_relatorio(report_id)
 
     def importar_cli_enm_colado(self, fonte: str, texto_cli: str) -> Dict[str, Any]:
-        """
-        Permite colar diretamente a saída do terminal CLI do Ericsson ENM (P1, 4G_5G ou 3G)
-        e executa automaticamente o VLOOKUP nas bases grid_4g_5g / grid_3g!
-        """
         if fonte not in ("P1", "4G_5G", "3G"):
             raise ValueError("Fonte ENM deve ser 'P1', '4G_5G' ou '3G'.")
 
@@ -143,7 +161,6 @@ class ReportModel:
         estado_atual = self.estado_memoria.get("celldowntime")
         if estado_atual and not estado_atual["df"].empty:
             df_existente = estado_atual["df"]
-            # Substitui os registros da mesma fonte mantendo as demais fontes
             df_outras = df_existente[df_existente["Fonte"] != fonte]
             df_combinado = pd.concat([df_outras, df_novo], ignore_index=True)
         else:
@@ -198,6 +215,7 @@ class ReportModel:
             payload["enm_cli_info"] = {
                 "url": ENM_URL_PADRAO,
                 "comandos": COMANDOS_ENM_CLI,
+                "status_background": obter_status_job_enm(),
             }
         return payload
 

@@ -82,7 +82,8 @@ body {
 }
 
 .env-badge,
-.user-badge {
+.user-badge,
+.enm-bg-badge {
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
@@ -425,7 +426,7 @@ tbody td {
   border-style: solid;
 }
 
-/* ENM CLI BOX */
+/* ENM CLI BOX & BACKGROUND WORKER STATUS */
 .enm-box {
   background: #f8f5fb;
   border: 1px solid #d8b4fe;

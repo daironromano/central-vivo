@@ -2,7 +2,7 @@ import os
 from typing import Dict, List, Any
 import pandas as pd
 import requests
-from src.core.excel_io import converter_serial_excel_para_data, ler_xlsx_nativo
+from backend.core.excel_io import converter_serial_excel_para_data, ler_xlsx_nativo
 
 COLUNAS_FORMATADAS_P1 = [
     "uf",
@@ -19,11 +19,6 @@ COLUNAS_FORMATADAS_P1 = [
 
 
 def autenticar_domus(base_url: str, username: str, password: str, verify_ssl: bool = False) -> str:
-    """
-    Realiza POST em /auth/login enviando username e password no corpo JSON
-    conforme especificado em api/acessar_api.txt e api/api_domus.py.
-    Retorna o token para uso no header 'x-access-token'.
-    """
     url_login = f"{base_url.rstrip('/')}/auth/login"
     resp = requests.post(
         url_login,
@@ -53,11 +48,6 @@ def consultar_calamidade_details(
     filtros_api: Dict[str, Any] = None,
     verify_ssl: bool = False,
 ) -> List[Dict[str, Any]]:
-    """
-    Consulta GET /query/calamidade-details com header 'x-access-token'.
-    Suporta parâmetros: page, limit, mode ('alarms'|'tickets'),
-    detail_type ('sites_fora', 'total_erbs_fora', etc.), uf, ddd, municipio, site, tecnologia.
-    """
     url_query = f"{base_url.rstrip('/')}/query/calamidade-details"
     headers = {"x-access-token": token, "Accept": "application/json"}
 
@@ -87,9 +77,6 @@ def consultar_calamidade_details(
 
 
 def carregar_p1_bruto_local() -> pd.DataFrame:
-    """
-    Lê o arquivo bruto real (bruto/p1.csv ou formatado/p1.xlsx) salvo no projeto.
-    """
     raiz = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     caminho_csv = os.path.join(raiz, "bruto", "p1.csv")
     caminho_xlsx = os.path.join(raiz, "formatado", "p1.xlsx")
@@ -105,11 +92,6 @@ def carregar_p1_bruto_local() -> pd.DataFrame:
 
 
 def formatar_p1_domus(df_bruto: pd.DataFrame) -> pd.DataFrame:
-    """
-    Transforma o DataFrame bruto do DOMUS (19 colunas do p1.csv / API)
-    exatamente nas 10 colunas padronizadas de formatado/p1.xlsx:
-    ['uf', 'ddd', 'municipio', 'ticket', 'sigla_erb', 'data_falha', 'grupo_responsavel', 'técnico', 'data', 'status atualizado']
-    """
     if df_bruto is None or df_bruto.empty:
         return pd.DataFrame(columns=COLUNAS_FORMATADAS_P1)
 
@@ -133,9 +115,6 @@ def formatar_p1_domus(df_bruto: pd.DataFrame) -> pd.DataFrame:
 
 
 def extrair_p1_domus(modo_ambiente: str = "MOCK", filtros_api: Dict[str, Any] = None) -> pd.DataFrame:
-    """
-    Executa a extração do P1 (DOMUS) e já retorna no formato oficial de formatado/p1.xlsx.
-    """
     if modo_ambiente.upper() == "PROD":
         base_url = os.getenv("DOMUS_BASE_URL", "http://10.215.39.118:8001").strip()
         username = os.getenv("DOMUS_USERNAME", "regional_norte").strip()

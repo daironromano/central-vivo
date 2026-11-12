@@ -15,10 +15,6 @@ def _col_str_to_idx(col_str: str) -> int:
 
 
 def converter_serial_excel_para_data(valor: Union[str, float, int]) -> str:
-    """
-    Converte número serial de data do Excel (ex: 46337.672222) para string 'DD/MM/YYYY HH:MM'.
-    Se já for string de data legível, mantém o valor original.
-    """
     if valor is None or valor == "":
         return ""
     s = str(valor).strip()
@@ -40,10 +36,7 @@ def listar_abas_xlsx(fonte: Union[str, bytes, BytesIO]) -> List[str]:
     ns = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
     with zipfile.ZipFile(fonte, "r") as zf:
         wb = ET.fromstring(zf.read("xl/workbook.xml"))
-        return [
-            sh.attrib.get("name", "")
-            for sh in wb.findall(".//main:sheet", ns)
-        ]
+        return [sh.attrib.get("name", "") for sh in wb.findall(".//main:sheet", ns)]
 
 
 def ler_xlsx_nativo(
@@ -52,8 +45,7 @@ def ler_xlsx_nativo(
 ) -> pd.DataFrame:
     """
     Leitor nativo de arquivos .xlsx / .xlsm (OpenXML) em Python puro.
-    Suporta tanto células com referência explícita ('A1', 'B1') quanto exportações
-    posicionais do Power BI (como bruto/anel.xlsx) onde o atributo 'r' é omitido.
+    Suporta células com referência explícita ('A1') e células posicionais do Power BI.
     """
     if isinstance(fonte, bytes):
         fonte = BytesIO(fonte)
@@ -141,8 +133,6 @@ def ler_xlsx_nativo(
         if not matriz:
             return pd.DataFrame()
 
-        # Se as primeiras linhas forem metadados de filtro do Power BI (apenas 1 coluna preenchida),
-        # avança até encontrar a linha real de cabeçalho da tabela:
         idx_cabecalho = 0
         for i, linha in enumerate(matriz[:5]):
             preenchidas = sum(1 for x in linha if str(x).strip() != "")
@@ -163,7 +153,6 @@ def ler_xlsx_nativo(
             cabecalho.append(nome)
 
         dados = matriz[idx_cabecalho + 1:]
-        # Remove linhas finais de rodapé ("Filtros aplicados:...") se houver apenas 1 célula preenchida
         dados_limpos = [
             linha for linha in dados
             if sum(1 for x in linha if str(x).strip() != "") >= 2
