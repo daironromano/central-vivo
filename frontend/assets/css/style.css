@@ -50,12 +50,20 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.brand:hover {
+  opacity: 0.92;
 }
 
 .brand-logo {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   background: #ffffff;
   display: flex;
@@ -64,14 +72,8 @@ body {
 }
 
 .brand h1 {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 700;
-}
-
-.brand p {
-  font-size: 12px;
-  opacity: 0.88;
-  margin-top: 2px;
 }
 
 .top-actions {
@@ -81,18 +83,30 @@ body {
   flex-wrap: wrap;
 }
 
-.env-badge,
-.user-badge,
-.enm-bg-badge {
-  padding: 6px 12px;
-  border-radius: 999px;
+.last-update-top {
   font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  padding-right: 6px;
+}
+
+.user-badge {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
   font-weight: 700;
   background: #ffffff;
   color: var(--vivo-purple);
+  border: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.user-badge:hover {
+  background: var(--vivo-purple-light);
 }
 
 .btn {
@@ -160,8 +174,15 @@ body {
   padding: 0 28px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 8px;
   overflow-x: auto;
+}
+
+.tabs-left {
+  display: flex;
+  gap: 8px;
 }
 
 .tab-btn {
@@ -224,7 +245,7 @@ body {
 /* KPI & CARDS */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
   margin-bottom: 22px;
 }
@@ -304,6 +325,18 @@ body {
   gap: 8px;
 }
 
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.last-update-card {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
 /* FILTER BAR */
 .filter-bar {
   background: #fbf9fc;
@@ -346,8 +379,7 @@ body {
 }
 
 .filter-group select,
-.filter-group input,
-.filter-group textarea {
+.filter-group input {
   padding: 8px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -357,13 +389,12 @@ body {
 }
 
 .filter-group select:focus,
-.filter-group input:focus,
-.filter-group textarea:focus {
+.filter-group input:focus {
   outline: 2px solid var(--vivo-purple);
   border-color: transparent;
 }
 
-/* TABLES & INLINE EDIT */
+/* TABLES */
 .table-wrapper {
   overflow-x: auto;
   max-height: 600px;
@@ -410,45 +441,6 @@ tbody td {
   text-overflow: ellipsis;
 }
 
-.cell-input {
-  width: 100%;
-  min-width: 110px;
-  padding: 5px 8px;
-  border: 1px dashed #c084fc;
-  border-radius: 5px;
-  background: #ffffff;
-  font-size: 12px;
-  color: var(--text-main);
-}
-
-.cell-input:focus {
-  outline: 2px solid var(--vivo-purple);
-  border-style: solid;
-}
-
-/* ENM CLI BOX & BACKGROUND WORKER STATUS */
-.enm-box {
-  background: #f8f5fb;
-  border: 1px solid #d8b4fe;
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 16px;
-}
-
-.enm-cmd-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  background: #fff;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-top: 8px;
-  font-family: monospace;
-  font-size: 11.5px;
-}
-
 .badge {
   display: inline-block;
   padding: 3px 8px;
@@ -463,14 +455,36 @@ tbody td {
   border: 1px solid #660099;
 }
 
-.badge-ok {
-  background: #f3f4f6;
-  color: #1f2937;
-}
-
 .badge-warn {
   background: #f5ebf9;
   color: #660099;
+}
+
+/* MODAL DE PERFIS E USUÁRIOS (ABERTO AO CLICAR NO USUÁRIO) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 8, 38, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  padding: 20px;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 760px;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .toast {

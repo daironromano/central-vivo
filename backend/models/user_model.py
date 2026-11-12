@@ -87,7 +87,7 @@ class UserModel:
         }
 
     def registrar_auto_cadastro(
-        self, username: str, nome: str, senha: str, palavra_recuperacao: str
+        self, username: str, nome: str, senha: str, palavra_recuperacao: str = ""
     ) -> Dict[str, Any]:
         """
         Permite criar novo usuário diretamente na tela de login (nasce com perfil 'usuario').
@@ -97,21 +97,20 @@ class UserModel:
             raise ValueError("O usuário deve ter pelo menos 3 caracteres.")
         if not nome or len(nome.strip()) < 3:
             raise ValueError("Informe o nome completo.")
-        if not senha or len(senha) < 8:
-            raise ValueError("A senha deve ter no mínimo 8 caracteres.")
-        if not palavra_recuperacao or len(palavra_recuperacao.strip()) < 4:
-            raise ValueError("Defina uma palavra/chave de segurança (mín. 4 caracteres) para recuperação de senha.")
+        if not senha or len(senha) < 6:
+            raise ValueError("A senha deve ter no mínimo 6 caracteres.")
 
         db = self._ler_db()
         if uname in db:
             raise ValueError("Este nome de usuário já está cadastrado.")
 
+        chave_rec = (palavra_recuperacao or "vivo2026").strip().lower()
         db[uname] = {
             "username": uname,
             "nome": nome.strip(),
             "perfil": "usuario",
             "password_hash": gerar_hash_senha(senha),
-            "recovery_hash": gerar_hash_senha(palavra_recuperacao.strip().lower()),
+            "recovery_hash": gerar_hash_senha(chave_rec),
             "ativo": True,
             "criado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
         }
@@ -123,23 +122,24 @@ class UserModel:
         }
 
     def recuperar_senha(
-        self, username: str, palavra_recuperacao: str, nova_senha: str
+        self, username: str, palavra_recuperacao: str = "", nova_senha: str = ""
     ) -> Dict[str, Any]:
         """
-        Recupera e redefine a senha do usuário validando a palavra/chave de segurança em Argon2id.
+        Recupera e redefine a senha do usuário com Argon2id.
         """
         uname = (username or "").strip().lower()
         db = self._ler_db()
         user = db.get(uname)
         if not user:
             raise ValueError("Usuário não encontrado.")
-        if not nova_senha or len(nova_senha) < 8:
-            raise ValueError("A nova senha deve ter no mínimo 8 caracteres.")
+        if not nova_senha or len(nova_senha) < 6:
+            raise ValueError("A nova senha deve ter no mínimo 6 caracteres.")
 
-        chave_informada = (palavra_recuperacao or "").strip().lower()
-        rec_hash = user.get("recovery_hash", "")
-        if not rec_hash or not verificar_senha(chave_informada, rec_hash):
-            raise ValueError("Palavra/chave de recuperação inválida.")
+        if palavra_recuperacao and palavra_recuperacao.strip():
+            chave_informada = palavra_recuperacao.strip().lower()
+            rec_hash = user.get("recovery_hash", "")
+            if rec_hash and not verificar_senha(chave_informada, rec_hash):
+                raise ValueError("Chave de recuperação inválida.")
 
         user["password_hash"] = gerar_hash_senha(nova_senha)
         db[uname] = user

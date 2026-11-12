@@ -6,10 +6,11 @@
 
 ---
 
-## REGRAS DE OURO DE SEGURANÇA (OBRIGATÓRIO PARA AMBOS OS AGENTES)
+## REGRAS DE OURO DE SEGURANÇA E UI (OBRIGATÓRIO PARA AMBOS OS AGENTES)
 1. **NUNCA** escreva tokens reais, senhas, cookies de sessão ou credenciais diretamente no código que vai para o GitHub nem neste arquivo.
 2. Credenciais e senhas da API do DOMUS (`10.215.39.118:8001`) e do ENM devem ficar **exclusivamente** no arquivo local `.env` (ignorado pelo `.gitignore`).
 3. **Regra Visual (`vivo-monochrome-icons`):** Zero emojis coloridos. Todos os ícones são SVGs monocromáticos em silhueta na cor **Roxo Vivo (`#660099`)**.
+4. **Regra de Interface Limpa e Objetiva (`vivo-clean-objective-ui`):** Menos informação e mais objetividade sempre — sem subtítulos, sem parênteses desnecessários (`Baixar Excel`, `Resumo Executivo`, `P1`, `AnelComutado`, `CellDowntime`), sem exibir modo de execução/origem/IP/trilha de auditoria, tabelas web somente leitura (preenchimento apenas no Excel baixado), data/hora da última atualização no canto superior direito, gestão de usuários ao clicar no botão do usuário e logo/nome clicável voltando ao início.
 
 ---
 

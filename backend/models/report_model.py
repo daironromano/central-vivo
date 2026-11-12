@@ -24,19 +24,19 @@ from backend.extractors.enm_cli import (
 CATALOGO_RELATORIOS = {
     "p1_domus": {
         "id": "p1_domus",
-        "nome": "P1 (DOMUS)",
+        "nome": "P1",
         "aba_excel": "P1",
-        "origem": "API DOMUS (10.215.39.118:8001)",
+        "origem": "API DOMUS",
         "extrator": extrair_p1_domus,
         "formatador": formatar_p1_domus,
         "colunas_filtro_sugeridas": ["uf", "ddd", "municipio", "grupo_responsavel", "técnico", "status atualizado"],
-        "colunas_editaveis": ["técnico", "data", "status atualizado"],
+        "colunas_editaveis": [],
     },
     "anel_comutado": {
         "id": "anel_comutado",
-        "nome": "Anel Comutado (BI)",
+        "nome": "AnelComutado",
         "aba_excel": "AnelComutado",
-        "origem": "Portal BI (Playwright)",
+        "origem": "Portal BI",
         "extrator": extrair_anel_comutado,
         "formatador": formatar_anel_comutado,
         "colunas_filtro_sugeridas": [
@@ -48,17 +48,17 @@ CATALOGO_RELATORIOS = {
             "Gestor Atual",
             "Localidade",
         ],
-        "colunas_editaveis": ["Técnico", "Data", "Observação"],
+        "colunas_editaveis": [],
     },
     "celldowntime": {
         "id": "celldowntime",
-        "nome": "CellDowntime (ENM CLI)",
+        "nome": "CellDowntime",
         "aba_excel": "CellDowntime",
-        "origem": "Ericsson ENM CLI (2º Plano Automático)",
+        "origem": "Ericsson ENM",
         "extrator": extrair_celldowntime_enm,
         "formatador": formatar_celldowntime,
         "colunas_filtro_sugeridas": ["Fonte", "UF", "Localidade", "Campo", "Reincidente", "Pend. Noc"],
-        "colunas_editaveis": ["TA", "Campo", "Observação", "Reincidente", "Técnico", "Previsão", "Pend. Noc"],
+        "colunas_editaveis": [],
     },
 }
 
@@ -87,7 +87,7 @@ class ReportModel:
         modo = self.obter_modo_ambiente()
 
         def _ao_concluir_enm(df_enm: pd.DataFrame):
-            agora = f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')} (Job ENM 2º Plano)"
+            agora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             self.estado_memoria["celldowntime"] = {
                 "df": df_enm.reset_index(drop=True),
                 "atualizado_em": agora,

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Autenticação Segura - Centralizador Vivo</title>
+  <title>Centralizador Vivo</title>
   <link rel="stylesheet" href="/static/css/style.css" />
   <style>
     .login-wrapper {
@@ -17,63 +17,29 @@
     .login-card {
       background: #ffffff;
       width: 100%;
-      max-width: 440px;
+      max-width: 400px;
       border-radius: 16px;
       padding: 32px;
       box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
     }
     .login-header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
     .login-logo {
-      width: 56px;
-      height: 56px;
+      width: 52px;
+      height: 52px;
       border-radius: 14px;
       background: var(--vivo-purple-light);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .login-header h2 {
       color: var(--vivo-purple);
-      font-size: 21px;
+      font-size: 20px;
       font-weight: 800;
-    }
-    .login-header p {
-      color: var(--text-muted);
-      font-size: 13px;
-      margin-top: 4px;
-    }
-    .auth-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      background: #f3f4f6;
-      padding: 5px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-    .auth-tab-btn {
-      border: none;
-      background: transparent;
-      padding: 9px 6px;
-      border-radius: 7px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      transition: all 0.15s;
-    }
-    .auth-tab-btn.active {
-      background: #ffffff;
-      color: var(--vivo-purple);
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     }
     .auth-panel {
       display: none;
@@ -131,24 +97,17 @@
       font-size: 12.5px;
       margin-bottom: 14px;
       font-weight: 600;
-    }
-    .msg-error {
       background: #f5ebf9;
       border-left: 4px solid #660099;
       color: #4a0070;
     }
-    .msg-success {
-      background: #f5ebf9;
-      border-left: 4px solid #660099;
-      color: #660099;
-    }
     .auth-footer-links {
       display: flex;
       justify-content: space-between;
-      margin-top: 14px;
-      padding-top: 12px;
+      margin-top: 16px;
+      padding-top: 14px;
       border-top: 1px solid var(--border-color);
-      font-size: 12px;
+      font-size: 12.5px;
     }
     .auth-link {
       background: none;
@@ -163,12 +122,6 @@
     .auth-link:hover {
       text-decoration: underline;
     }
-    .sec-note {
-      margin-top: 16px;
-      text-align: center;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
   </style>
 </head>
 <body>
@@ -176,33 +129,16 @@
     <div class="login-card">
       <div class="login-header">
         <div class="login-logo">
-          <svg class="icon-vivo" style="width: 30px; height: 30px;" viewBox="0 0 24 24">
-            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+          <svg class="icon-vivo" style="width: 28px; height: 28px;" viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zm0 7.5l-6-3 6-3 6 3-6 3zm0 2.5l-10-5v2l10 5 10-5v-2l-10 5zm0 5l-10-5v2l10 5 10-5v-2l-10 5z"/>
           </svg>
         </div>
         <h2>Centralizador Vivo</h2>
-        <p>Arquitetura MVC · Segurança Corporativa Nível Avançado</p>
-      </div>
-
-      <!-- SELETOR DE MODO: ENTRAR / CRIAR USUÁRIO / RECUPERAR SENHA -->
-      <div class="auth-tabs">
-        <button type="button" class="auth-tab-btn active" id="tabBtnLogin" onclick="alternarModoAuth('login')">
-          <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/></svg>
-          Entrar
-        </button>
-        <button type="button" class="auth-tab-btn" id="tabBtnRegister" onclick="alternarModoAuth('register')">
-          <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-          Criar Usuário
-        </button>
-        <button type="button" class="auth-tab-btn" id="tabBtnRecover" onclick="alternarModoAuth('recover')">
-          <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-          Recuperar Senha
-        </button>
       </div>
 
       <div id="msgBox" class="msg-box"></div>
 
-      <!-- PAINEL 1: LOGIN -->
+      <!-- LOGIN -->
       <div id="panelLogin" class="auth-panel active">
         <form id="loginForm" onsubmit="fazerLogin(event)">
           <div class="form-group">
@@ -210,7 +146,7 @@
               <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
               Usuário
             </label>
-            <input type="text" id="loginUsername" placeholder="Digite seu login" required autocomplete="username" />
+            <input type="text" id="loginUsername" placeholder="Usuário" required autocomplete="username" />
           </div>
 
           <div class="form-group">
@@ -218,74 +154,67 @@
               <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
               Senha
             </label>
-            <input type="password" id="loginPassword" placeholder="Digite sua senha" required autocomplete="current-password" />
+            <input type="password" id="loginPassword" placeholder="Senha" required autocomplete="current-password" />
           </div>
 
           <button type="submit" class="btn-submit-full" id="btnLogin">
             <svg class="icon-vivo" style="fill: #ffffff;" viewBox="0 0 24 24">
               <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>
             </svg>
-            Entrar na Plataforma
+            Entrar
           </button>
         </form>
 
         <div class="auth-footer-links">
           <button type="button" class="auth-link" onclick="alternarModoAuth('register')">
-            <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-            Criar novo usuário
+            Criar usuário
           </button>
           <button type="button" class="auth-link" onclick="alternarModoAuth('recover')">
-            <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
-            Esqueci minha senha
+            Recuperar senha
           </button>
         </div>
       </div>
 
-      <!-- PAINEL 2: CRIAR USUÁRIO -->
+      <!-- CRIAR USUÁRIO -->
       <div id="panelRegister" class="auth-panel">
         <form id="registerForm" onsubmit="fazerCadastro(event)">
           <div class="form-group">
             <label>
               <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-              Login de Acesso
+              Usuário
             </label>
-            <input type="text" id="regUsername" placeholder="ex: joao.silva" required />
+            <input type="text" id="regUsername" placeholder="Usuário" required />
           </div>
 
           <div class="form-group">
             <label>
               <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
-              Nome Completo
+              Nome
             </label>
-            <input type="text" id="regNome" placeholder="Ex: João Silva" required />
+            <input type="text" id="regNome" placeholder="Nome completo" required />
           </div>
 
           <div class="form-group">
             <label>
               <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>
-              Senha (mín. 6 caracteres)
+              Senha
             </label>
-            <input type="password" id="regPassword" placeholder="Crie uma senha forte" required />
-          </div>
-
-          <div class="form-group">
-            <label>
-              <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-              Palavra de Segurança (p/ Recuperar Senha)
-            </label>
-            <input type="password" id="regRecoveryKey" placeholder="Defina sua chave secreta de recuperação" required />
+            <input type="password" id="regPassword" placeholder="Senha" required />
           </div>
 
           <button type="submit" class="btn-submit-full" id="btnRegister">
-            <svg class="icon-vivo" style="fill: #ffffff;" viewBox="0 0 24 24">
-              <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-            </svg>
-            Concluir Cadastro
+            Criar Usuário
           </button>
         </form>
+
+        <div class="auth-footer-links">
+          <button type="button" class="auth-link" onclick="alternarModoAuth('login')">
+            Voltar ao login
+          </button>
+        </div>
       </div>
 
-      <!-- PAINEL 3: RECUPERAR SENHA -->
+      <!-- RECUPERAR SENHA -->
       <div id="panelRecover" class="auth-panel">
         <form id="recoverForm" onsubmit="fazerRecuperacao(event)">
           <div class="form-group">
@@ -293,45 +222,35 @@
               <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
               Usuário
             </label>
-            <input type="text" id="recUsername" placeholder="Digite seu login" required />
-          </div>
-
-          <div class="form-group">
-            <label>
-              <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-              Palavra de Segurança Cadastrada
-            </label>
-            <input type="password" id="recRecoveryKey" placeholder="Informe sua chave de recuperação" required />
+            <input type="text" id="recUsername" placeholder="Usuário" required />
           </div>
 
           <div class="form-group">
             <label>
               <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>
-              Nova Senha (mín. 6 caracteres)
+              Nova Senha
             </label>
-            <input type="password" id="recNewPassword" placeholder="Digite sua nova senha" required />
+            <input type="password" id="recNewPassword" placeholder="Nova senha" required />
           </div>
 
           <button type="submit" class="btn-submit-full" id="btnRecover">
-            <svg class="icon-vivo" style="fill: #ffffff;" viewBox="0 0 24 24">
-              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
-            </svg>
             Redefinir Senha
           </button>
         </form>
-      </div>
 
-      <div class="sec-note">
-        Protegido por Argon2id · Sessão Assinada HMAC-SHA256 · Rate-Limit Ativo
+        <div class="auth-footer-links">
+          <button type="button" class="auth-link" onclick="alternarModoAuth('login')">
+            Voltar ao login
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    function exibirMensagem(texto, tipo) {
+    function exibirMensagem(texto) {
       const box = document.getElementById('msgBox');
       box.textContent = texto;
-      box.className = 'msg-box ' + (tipo === 'sucesso' ? 'msg-success' : 'msg-error');
       box.style.display = 'block';
     }
 
@@ -343,10 +262,6 @@
 
     function alternarModoAuth(modo) {
       limparMensagem();
-      document.getElementById('tabBtnLogin').classList.toggle('active', modo === 'login');
-      document.getElementById('tabBtnRegister').classList.toggle('active', modo === 'register');
-      document.getElementById('tabBtnRecover').classList.toggle('active', modo === 'recover');
-
       document.getElementById('panelLogin').classList.toggle('active', modo === 'login');
       document.getElementById('panelRegister').classList.toggle('active', modo === 'register');
       document.getElementById('panelRecover').classList.toggle('active', modo === 'recover');
@@ -371,10 +286,10 @@
         if (data.sucesso) {
           window.location.href = '/';
         } else {
-          exibirMensagem(data.erro || 'Falha na autenticação.', 'erro');
+          exibirMensagem(data.erro || 'Falha na autenticação.');
         }
       } catch (err) {
-        exibirMensagem('Erro de conexão com o servidor.', 'erro');
+        exibirMensagem('Erro de conexão com o servidor.');
       } finally {
         btn.disabled = false;
       }
@@ -393,8 +308,7 @@
           body: JSON.stringify({
             username: document.getElementById('regUsername').value,
             nome: document.getElementById('regNome').value,
-            password: document.getElementById('regPassword').value,
-            recovery_key: document.getElementById('regRecoveryKey').value
+            password: document.getElementById('regPassword').value
           })
         });
         const data = await res.json();
@@ -403,12 +317,12 @@
           document.getElementById('registerForm').reset();
           alternarModoAuth('login');
           document.getElementById('loginUsername').value = novoLogin;
-          exibirMensagem(data.mensagem, 'sucesso');
+          exibirMensagem(data.mensagem);
         } else {
-          exibirMensagem(data.erro || 'Não foi possível criar o usuário.', 'erro');
+          exibirMensagem(data.erro || 'Não foi possível criar o usuário.');
         }
       } catch (err) {
-        exibirMensagem('Erro de comunicação com o servidor.', 'erro');
+        exibirMensagem('Erro de comunicação com o servidor.');
       } finally {
         btn.disabled = false;
       }
@@ -426,7 +340,6 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: document.getElementById('recUsername').value,
-            recovery_key: document.getElementById('recRecoveryKey').value,
             new_password: document.getElementById('recNewPassword').value
           })
         });
@@ -436,12 +349,12 @@
           document.getElementById('recoverForm').reset();
           alternarModoAuth('login');
           document.getElementById('loginUsername').value = recLogin;
-          exibirMensagem(data.mensagem, 'sucesso');
+          exibirMensagem(data.mensagem);
         } else {
-          exibirMensagem(data.erro || 'Não foi possível redefinir a senha.', 'erro');
+          exibirMensagem(data.erro || 'Não foi possível redefinir a senha.');
         }
       } catch (err) {
-        exibirMensagem('Erro de comunicação com o servidor.', 'erro');
+        exibirMensagem('Erro de comunicação com o servidor.');
       } finally {
         btn.disabled = false;
       }
