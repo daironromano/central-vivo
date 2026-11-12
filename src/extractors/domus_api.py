@@ -1,176 +1,162 @@
 import os
-from datetime import datetime, timedelta
 from typing import Dict, List, Any
 import pandas as pd
 import requests
+from src.core.excel_io import converter_serial_excel_para_data, ler_xlsx_nativo
+
+COLUNAS_FORMATADAS_P1 = [
+    "uf",
+    "ddd",
+    "municipio",
+    "ticket",
+    "sigla_erb",
+    "data_falha",
+    "grupo_responsavel",
+    "técnico",
+    "data",
+    "status atualizado",
+]
 
 
-def buscar_json_domus_real() -> List[Dict[str, Any]]:
-   BASE_URL = os.getenv(
-    "DOMUS_URL",
-    "http://10.215.39.118:8001"
-)
-
-USUARIO = os.getenv("regional_norte")
-SENHA = os.getenv("DOMUS_PASSWORD")
-
-def obter_token():
+def autenticar_domus(base_url: str, username: str, password: str, verify_ssl: bool = False) -> str:
+    """
+    Realiza POST em /auth/login enviando username e password no corpo JSON
+    conforme especificado em api/acessar_api.txt e api/api_domus.py.
+    Retorna o token para uso no header 'x-access-token'.
+    """
+    url_login = f"{base_url.rstrip('/')}/auth/login"
     resp = requests.post(
-        f"{BASE_URL}/auth/login",
-        json={
-            "login": USUARIO,
-            "senha": SENHA
-        },
-        timeout=60
+        url_login,
+        json={"username": username, "password": password},
+        verify=verify_ssl,
+        timeout=30,
     )
-
     resp.raise_for_status()
 
-    dados = resp.json()
+    try:
+        dados = resp.json()
+        if isinstance(dados, dict):
+            for k in ("token", "access_token", "x-access-token", "jwt"):
+                if k in dados and dados[k]:
+                    return str(dados[k]).strip()
+        if isinstance(dados, str):
+            return dados.strip()
+    except Exception:
+        pass
 
-    return dados["token"]
+    return resp.text.strip().strip('"')
 
 
-def buscar_json_domus_real(
-    mode="alarms",
-    detail_type="sites_fora"
-):
-    token = obter_token()
-
-    headers = {
-        "x-access-token": token
-    }
+def consultar_calamidade_details(
+    base_url: str,
+    token: str,
+    filtros_api: Dict[str, Any] = None,
+    verify_ssl: bool = False,
+) -> List[Dict[str, Any]]:
+    """
+    Consulta GET /query/calamidade-details com header 'x-access-token'.
+    Suporta parâmetros: page, limit, mode ('alarms'|'tickets'),
+    detail_type ('sites_fora', 'total_erbs_fora', etc.), uf, ddd, municipio, site, tecnologia.
+    """
+    url_query = f"{base_url.rstrip('/')}/query/calamidade-details"
+    headers = {"x-access-token": token, "Accept": "application/json"}
 
     params = {
         "page": 0,
-        "limit": 50000,
-        "mode": mode,
-        "detail_type": detail_type
+        "limit": 5000,
+        "mode": os.getenv("DOMUS_MODE", "tickets"),
+        "detail_type": os.getenv("DOMUS_DETAIL_TYPE", "sites_fora"),
     }
+    if filtros_api:
+        for k in ("page", "limit", "mode", "detail_type", "uf", "ddd", "municipio", "site", "tecnologia"):
+            if k in filtros_api and filtros_api[k]:
+                params[k] = filtros_api[k]
 
-    resp = requests.get(
-        f"{BASE_URL}/query/calamidade-details",
-        headers=headers,
-        params=params,
-        timeout=120
-    )
-
+    resp = requests.get(url_query, headers=headers, params=params, verify=verify_ssl, timeout=60)
     resp.raise_for_status()
+    dados = resp.json()
 
-    return resp.json()
-
-
-def extrair_p1_domus(env_mode):
-    dados = buscar_json_domus_real()
-
+    if isinstance(dados, list):
+        return dados
     if isinstance(dados, dict):
-        if "data" in dados:
-            dados = dados["data"]
+        for chave in ("data", "items", "result", "results", "registros", "rows", "value"):
+            if chave in dados and isinstance(dados[chave], list):
+                return dados[chave]
+        return [dados]
+    return []
 
-    return pd.DataFrame(dados)
 
-
-def gerar_mock_domus() -> pd.DataFrame:
+def carregar_p1_bruto_local() -> pd.DataFrame:
     """
-    Dados simulados de P1 (DOMUS) para testes fora da rede da Vivo.
-    Assim que seu script real rodar, as colunas reais substituirão estas automaticamente!
+    Lê o arquivo bruto real (bruto/p1.csv ou formatado/p1.xlsx) salvo no projeto.
     """
-    hoje = datetime.now()
-    dados = [
-        {
-            "ID_Chamado": "DOM-90811",
-            "Tipo": "P1",
-            "Regional": "SP",
-            "UF": "SP",
-            "Municipio": "São Paulo",
-            "Site_Estacao": "ESP-SPO-014",
-            "Status": "Em Atendimento",
-            "Causa_Raiz": "Rompimento Fibra Óptica",
-            "Impacto_Clientes": 1450,
-            "SLA_Status": "Dentro do Prazo",
-            "Data_Abertura": (hoje - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M"),
-            "Responsavel": "NOC Nível 2",
-        },
-        {
-            "ID_Chamado": "DOM-90815",
-            "Tipo": "P1",
-            "Regional": "SUL",
-            "UF": "PR",
-            "Municipio": "Curitiba",
-            "Site_Estacao": "EPR-CWB-008",
-            "Status": "Pendente Campo",
-            "Causa_Raiz": "Falha de Energia / AC",
-            "Impacto_Clientes": 3200,
-            "SLA_Status": "Crítico",
-            "Data_Abertura": (hoje - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"),
-            "Responsavel": "Equipe Campo Sul",
-        },
-        {
-            "ID_Chamado": "DOM-90822",
-            "Tipo": "P1",
-            "Regional": "NE",
-            "UF": "PE",
-            "Municipio": "Recife",
-            "Site_Estacao": "EPE-REC-042",
-            "Status": "Em Atendimento",
-            "Causa_Raiz": "Placa Transmissora",
-            "Impacto_Clientes": 890,
-            "SLA_Status": "Dentro do Prazo",
-            "Data_Abertura": (hoje - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M"),
-            "Responsavel": "Engenharia TX",
-        },
-        {
-            "ID_Chamado": "DOM-90830",
-            "Tipo": "P1",
-            "Regional": "RJ/ES",
-            "UF": "RJ",
-            "Municipio": "Rio de Janeiro",
-            "Site_Estacao": "ERJ-RJO-102",
-            "Status": "Encerrado",
-            "Causa_Raiz": "Vandalismo",
-            "Impacto_Clientes": 2100,
-            "SLA_Status": "Dentro do Prazo",
-            "Data_Abertura": (hoje - timedelta(hours=7)).strftime("%Y-%m-%d %H:%M"),
-            "Responsavel": "Equipe Campo RJ",
-        },
-        {
-            "ID_Chamado": "DOM-90841",
-            "Tipo": "P1",
-            "Regional": "SP",
-            "UF": "SP",
-            "Municipio": "Campinas",
-            "Site_Estacao": "ESP-CPS-019",
-            "Status": "Pendente Campo",
-            "Causa_Raiz": "Rompimento Fibra Óptica",
-            "Impacto_Clientes": 4120,
-            "SLA_Status": "Crítico",
-            "Data_Abertura": (hoje - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M"),
-            "Responsavel": "Equipe Fibra SP",
-        },
-        {
-            "ID_Chamado": "DOM-90849",
-            "Tipo": "P1",
-            "Regional": "MG",
-            "UF": "MG",
-            "Municipio": "Belo Horizonte",
-            "Site_Estacao": "EMG-BHE-055",
-            "Status": "Em Atendimento",
-            "Causa_Raiz": "Falha Equipamento Core",
-            "Impacto_Clientes": 1780,
-            "SLA_Status": "Dentro do Prazo",
-            "Data_Abertura": (hoje - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M"),
-            "Responsavel": "NOC Nível 2",
-        },
-    ]
-    return pd.DataFrame(dados)
+    raiz = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    caminho_csv = os.path.join(raiz, "bruto", "p1.csv")
+    caminho_xlsx = os.path.join(raiz, "formatado", "p1.xlsx")
+
+    if os.path.exists(caminho_csv):
+        try:
+            return pd.read_csv(caminho_csv, sep=";", encoding="utf-8")
+        except Exception:
+            return pd.read_csv(caminho_csv, sep=";", encoding="latin1")
+    if os.path.exists(caminho_xlsx):
+        return ler_xlsx_nativo(caminho_xlsx)
+    return pd.DataFrame(columns=COLUNAS_FORMATADAS_P1)
 
 
-def extrair_p1_domus(modo_ambiente: str = "MOCK") -> pd.DataFrame:
+def formatar_p1_domus(df_bruto: pd.DataFrame) -> pd.DataFrame:
     """
-    Executa a extração do relatório P1 (DOMUS).
+    Transforma o DataFrame bruto do DOMUS (19 colunas do p1.csv / API)
+    exatamente nas 10 colunas padronizadas de formatado/p1.xlsx:
+    ['uf', 'ddd', 'municipio', 'ticket', 'sigla_erb', 'data_falha', 'grupo_responsavel', 'técnico', 'data', 'status atualizado']
     """
-    if modo_ambiente.upper() == "MOCK":
-        return gerar_mock_domus()
+    if df_bruto is None or df_bruto.empty:
+        return pd.DataFrame(columns=COLUNAS_FORMATADAS_P1)
 
-    registros = buscar_json_domus_real()
-    return pd.json_normalize(registros) if registros else pd.DataFrame()
+    df = df_bruto.copy()
+    mapa_lower = {c.lower().strip(): c for c in df.columns}
+
+    saida = pd.DataFrame()
+    for col_alvo in COLUNAS_FORMATADAS_P1:
+        col_origem = mapa_lower.get(col_alvo.lower())
+        if not col_origem and col_alvo == "técnico":
+            col_origem = mapa_lower.get("tecnico")
+        if col_origem and col_origem in df.columns:
+            saida[col_alvo] = df[col_origem].fillna("").astype(str)
+        else:
+            saida[col_alvo] = ""
+
+    if "data_falha" in saida.columns:
+        saida["data_falha"] = saida["data_falha"].apply(converter_serial_excel_para_data)
+
+    return saida
+
+
+def extrair_p1_domus(modo_ambiente: str = "MOCK", filtros_api: Dict[str, Any] = None) -> pd.DataFrame:
+    """
+    Executa a extração do P1 (DOMUS) e já retorna no formato oficial de formatado/p1.xlsx.
+    """
+    if modo_ambiente.upper() == "PROD":
+        base_url = os.getenv("DOMUS_BASE_URL", "http://10.215.39.118:8001").strip()
+        username = os.getenv("DOMUS_USERNAME", "regional_norte").strip()
+        password = os.getenv("DOMUS_PASSWORD", "").strip()
+        token_fixo = os.getenv("DOMUS_API_TOKEN", "").strip()
+        verify_ssl = os.getenv("DOMUS_VERIFY_SSL", "False").lower() == "true"
+
+        token = token_fixo
+        if password:
+            try:
+                token = autenticar_domus(base_url, username, password, verify_ssl=verify_ssl)
+            except Exception:
+                if not token_fixo:
+                    raise
+
+        if token:
+            registros = consultar_calamidade_details(
+                base_url, token, filtros_api=filtros_api, verify_ssl=verify_ssl
+            )
+            df_api = pd.json_normalize(registros) if registros else pd.DataFrame()
+            return formatar_p1_domus(df_api)
+
+    df_bruto = carregar_p1_bruto_local()
+    return formatar_p1_domus(df_bruto)

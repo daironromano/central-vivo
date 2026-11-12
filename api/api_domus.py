@@ -1,30 +1,38 @@
-import requests 
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+base_url = os.getenv("DOMUS_BASE_URL", "http://10.215.39.118:8001")
+username = os.getenv("DOMUS_USERNAME", "regional_norte")
+password = os.getenv("DOMUS_PASSWORD", "")
 
 r = requests.post(
-    "http://10.215.39.118:8001/auth/login",
+    f"{base_url}/auth/login",
     json={
-        "username": "regional_norte",
-        "password": "mtE49UjFHJ850CZ3Bb5F"
-    }
+        "username": username,
+        "password": password,
+    },
 )
 
 print(r.status_code)
 print(r.text)
 
-
+token = os.getenv("DOMUS_API_TOKEN", "")
 headers = {
-    "x-access-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwdWJsaWNfaWQiOiI3ODJmMDk4NS1mZDBhLTQyZGMtYjMyNy00MWNkMWQ0YzY4OTMiLCJleHAiOjE3OTQ0Mzc5OTd9.oiJ-9v4Jn-zsytBk6jKCwswoQ7C_x4UXamS-0ljqN68"
+    "x-access-token": token,
 }
 
 r = requests.get(
-    "http://10.215.39.118:8001/query/calamidade-details",
+    f"{base_url}/query/calamidade-details",
     headers=headers,
     params={
         "page": 0,
         "limit": 1000,
         "mode": "tickets",
-        "detail_type": "sites_fora"
-    }
+        "detail_type": "sites_fora",
+    },
 )
 
 print(r.json())

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Seguro — Centralizador Vivo</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <style>
+    .login-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #2d1147 0%, #660099 60%, #4a0070 100%);
+      padding: 20px;
+    }
+
+    .login-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 430px;
+      border-radius: 16px;
+      padding: 34px 32px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .login-logo {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: var(--vivo-purple-light);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .login-header h1 {
+      font-size: 20px;
+      color: var(--vivo-purple);
+      font-weight: 800;
+    }
+
+    .login-header p {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .form-field {
+      margin-bottom: 16px;
+    }
+
+    .form-field label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--vivo-purple);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .form-field input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .form-field input:focus {
+      outline: 2px solid var(--vivo-purple);
+      border-color: transparent;
+    }
+
+    .btn-login {
+      width: 100%;
+      justify-content: center;
+      background: var(--vivo-purple-light);
+      color: var(--vivo-purple);
+      border: 2px solid var(--vivo-purple);
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+
+    .btn-login:hover {
+      background: #e9d5ff;
+    }
+
+    .error-msg {
+      background: #f5ebf9;
+      color: #4a0070;
+      border: 1px solid #660099;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      margin-bottom: 16px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profiles-hint {
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px dashed #e5e7eb;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo">
+          <svg class="icon-vivo" style="width:30px;height:30px;" viewBox="0 0 24 24">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+          </svg>
+        </div>
+        <h1>Centralizador Vivo</h1>
+        <p>Autenticação Corporativa RBAC (Argon2id + HMAC-SHA256)</p>
+      </div>
+
+      <div id="loginError" class="error-msg">
+        <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+        <span id="loginErrorText"></span>
+      </div>
+
+      <form id="loginForm" onsubmit="realizarLogin(event)">
+        <div class="form-field">
+          <label>
+            <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span>Usuário</span>
+          </label>
+          <input type="text" id="username" placeholder="Ex: dairon ou usuario" required autocomplete="username" />
+        </div>
+
+        <div class="form-field">
+          <label>
+            <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            <span>Senha</span>
+          </label>
+          <input type="password" id="password" placeholder="Digite sua senha..." required autocomplete="current-password" />
+        </div>
+
+        <button type="submit" class="btn btn-login" id="btnSubmitLogin">
+          <svg class="icon-vivo" viewBox="0 0 24 24"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/></svg>
+          <span>Entrar no Sistema</span>
+        </button>
+      </form>
+
+      <div class="profiles-hint">
+        <div style="font-weight:700;color:var(--vivo-purple);margin-bottom:4px;">Perfis pré-configurados:</div>
+        <div>• <strong>Administrador:</strong> usuário <code>dairon</code> | senha: <code>Vivo@Admin2026</code></div>
+        <div>• <strong>Usuário Operacional:</strong> usuário <code>usuario</code> | senha: <code>Vivo@User2026</code></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function realizarLogin(ev) {
+      ev.preventDefault();
+      const btn = document.getElementById("btnSubmitLogin");
+      const errBox = document.getElementById("loginError");
+      const errTxt = document.getElementById("loginErrorText");
+      errBox.style.display = "none";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errTxt.textContent = data.detail || "Falha na autenticação.";
+          errBox.style.display = "flex";
+          return;
+        }
+        window.location.href = "/";
+      } catch (e) {
+        errTxt.textContent = "Erro de comunicação com o servidor.";
+        errBox.style.display = "flex";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

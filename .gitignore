@@ -1,9 +1,9 @@
-# Segurança Corporativa - NUNCA subir credenciais ou planilhas reais da Vivo
+# Segurança Corporativa - NUNCA subir credenciais, banco de senhas ou sessões
 .env
-*.xlsx
-*.xls
-*.csv
-!mocks/*.csv
+data/
+downloads_temp/
+output/
+Centralizador_Vivo_*.xlsx
 
 # Python
 __pycache__/
@@ -12,7 +12,3 @@ __pycache__/
 venv/
 .venv/
 env/
-
-# Pastas temporárias de download/extração
-downloads_temp/
-output/
