@@ -6,37 +6,68 @@ import requests
 
 
 def buscar_json_domus_real() -> List[Dict[str, Any]]:
-    """
-    =========================================================================
-    COLE AQUI O SEU SCRIPT PYTHON DA API DO DOMUS QUANDO ESTIVER NA VIVO!
-    =========================================================================
-    Esta função deve retornar a lista de registros (JSON) vinda da API do DOMUS.
-    """
-    url = os.getenv("DOMUS_API_URL", "")
-    token = os.getenv("DOMUS_API_TOKEN", "")
-    verify_ssl = os.getenv("DOMUS_VERIFY_SSL", "False").lower() == "true"
+   BASE_URL = os.getenv(
+    "DOMUS_URL",
+    "http://10.215.39.118:8001"
+)
+
+USUARIO = os.getenv("regional_norte")
+SENHA = os.getenv("DOMUS_PASSWORD")
+
+def obter_token():
+    resp = requests.post(
+        f"{BASE_URL}/auth/login",
+        json={
+            "login": USUARIO,
+            "senha": SENHA
+        },
+        timeout=60
+    )
+
+    resp.raise_for_status()
+
+    dados = resp.json()
+
+    return dados["token"]
+
+
+def buscar_json_domus_real(
+    mode="alarms",
+    detail_type="sites_fora"
+):
+    token = obter_token()
 
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
-        "Content-Type": "application/json",
+        "x-access-token": token
     }
 
-    # Exemplo padrão de requisição (substitua pelo seu código se usar POST ou outros headers):
-    response = requests.get(url, headers=headers, verify=verify_ssl, timeout=60)
-    response.raise_for_status()
-    dados = response.json()
+    params = {
+        "page": 0,
+        "limit": 50000,
+        "mode": mode,
+        "detail_type": detail_type
+    }
 
-    # Se o JSON vier dentro de uma chave (ex: {"data": [...]} ou {"items": [...]}),
-    # o código abaixo já descobre sozinho a lista de registros:
-    if isinstance(dados, list):
-        return dados
+    resp = requests.get(
+        f"{BASE_URL}/query/calamidade-details",
+        headers=headers,
+        params=params,
+        timeout=120
+    )
+
+    resp.raise_for_status()
+
+    return resp.json()
+
+
+def extrair_p1_domus(env_mode):
+    dados = buscar_json_domus_real()
+
     if isinstance(dados, dict):
-        for chave in ["data", "items", "result", "results", "registros", "value"]:
-            if chave in dados and isinstance(dados[chave], list):
-                return dados[chave]
-        return [dados]
-    return []
+        if "data" in dados:
+            dados = dados["data"]
+
+    return pd.DataFrame(dados)
 
 
 def gerar_mock_domus() -> pd.DataFrame:

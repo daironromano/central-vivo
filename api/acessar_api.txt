@@ -1,0 +1,24 @@
+ 
+ 
+Dados calamidade:
+ 
+Ip:porta 10.215.39.118:8001
+username: regional_norte
+senha: 
+ 
+Para consultar o endpoint dos dados calamidades (/query/calamidade-details) é primeiro necessário realizar o login, enviando no corpo da requisição login e senha para o endpoint de autenticação (/auth/login), o token retornado pelo login deve ser colocado como veio do servidor nos cabeçalhos das requisições no campo 'x-access-token'.
+ 
+Endpoint - /query/calamidade-details - GET:
+Parâmetros disponíveis: 
+0 <= page <= 50000
+1000 <= limit <= 50000
+mode -> ['alarms', 'tickets'] : muda entre o modo de Alarmes e TAs (tickets)
+detail_type -> ['parque_nacional', 'municipios_isolados', 'total_erbs_fora', 'sites_fora', 'consolidado_sites_fora', 'sites_fora_infra', 'erbs_fora_infra'] : Onde parque_nacional filtra o cadastro de ERBS, e total ERBs fora corresponde à informação no painel calamidade de total tecnologias fora.
+uf : Filtra a UF pela sigla.
+ddd : Filtra o DDD
+municipio : filtra o município, o formato esperado é o nome do município em maiúsculo com acentos, por exemplo: 'SÃO PAULO'.
+site: filtra pela sigla do site sem uf, por exemplo o site BA_RBB, seria filtrado por site : 'RBB' e uf : 'BA'.
+tecnologia -> ['2G', '3G', '4G', '5G'] : Filtra a tecnologia da ERB.
+ 
+ 
+obs: separando por vírgula é possível filtrar por vários valores diferentes num mesmo parâmetro, por exemplo: tecnologia : '2G,3G'
