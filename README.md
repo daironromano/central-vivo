@@ -1,4 +1,4 @@
-# 📊 Centralizador Diário de Relatórios — Vivo
+# Centralizador Diário de Relatórios — Vivo
 
 Aplicação Web Local (Python + Flask) desenhada na arquitetura **"De Fora para Dentro"**:
 - **Fora da Vivo (`ENV_MODE=MOCK`):** Simula as extrações dos 3 sistemas para construirmos e testarmos filtros, regras de negócio e o gerador de Excel sem precisar da intranet.
@@ -7,7 +7,7 @@ Aplicação Web Local (Python + Flask) desenhada na arquitetura **"De Fora para 
 
 ---
 
-## 🗂️ Estrutura das Abas (Na Tela e no Excel Gerado)
+## Estrutura das Abas (Na Tela e no Excel Gerado)
 
 1. **`Resumo Geral`**:
    - Consolida a volumetria total e filtrada dos 3 relatórios.
@@ -27,7 +27,7 @@ Aplicação Web Local (Python + Flask) desenhada na arquitetura **"De Fora para 
 
 ---
 
-## 🚀 Como rodar (Aqui ou na Máquina da Vivo)
+## Como rodar (Aqui ou na Máquina da Vivo)
 
 ### 1. Instalar dependências (1ª vez)
 ```bash
@@ -43,7 +43,7 @@ E abrir no navegador: **http://localhost:8000**
 
 ---
 
-## 🔄 Fluxo GitHub (Passando para o PC da Vivo)
+## Fluxo GitHub (Passando para o PC da Vivo)
 
 1. **Onde colar o seu script da API do DOMUS:**
    - Abra o arquivo [`src/extractors/domus_api.py`](src/extractors/domus_api.py) e cole a lógica da sua requisição dentro da função `buscar_json_domus_real()`.
