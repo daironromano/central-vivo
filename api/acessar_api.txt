@@ -2,8 +2,8 @@
  
 Dados calamidade:
  
-Ip:porta 10.215.39.118:8001
-username: regional_norte
+Ip:porta 
+username: 
 senha: 
  
 Para consultar o endpoint dos dados calamidades (/query/calamidade-details) é primeiro necessário realizar o login, enviando no corpo da requisição login e senha para o endpoint de autenticação (/auth/login), o token retornado pelo login deve ser colocado como veio do servidor nos cabeçalhos das requisições no campo 'x-access-token'.

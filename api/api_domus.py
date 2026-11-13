@@ -24,15 +24,5 @@ headers = {
     "x-access-token": token,
 }
 
-r = requests.get(
-    f"{base_url}/query/calamidade-details",
-    headers=headers,
-    params={
-        "page": 0,
-        "limit": 1000,
-        "mode": "tickets",
-        "detail_type": "sites_fora",
-    },
-)
 
 print(r.json())
